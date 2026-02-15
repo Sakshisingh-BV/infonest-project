@@ -48,6 +48,8 @@ public class SecurityConfig {
                                 "/clubofficialdashboard.html", "/clubdashboard.html", "/indivisualclub.html",
                                 "/club_form.html", "/admin_db.html", "/css/**", "/js/**", "/*.js", "/*.html")
                         .permitAll()
+                        .requestMatchers("/api/auth/forgot-password", "/error").permitAll()
+                        .requestMatchers("/api/auth/reset-password", "/error").permitAll()
                         // Public APIs
                         .requestMatchers("/api/v1/events/upcoming", "/api/v1/clubs/all").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/events/**").permitAll()

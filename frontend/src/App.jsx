@@ -14,6 +14,8 @@ import Dashboard from './pages/Dashboard';
 import FacultyDashboard from './pages/FacultyDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import OfficeDashboard from './pages/OfficeDashboard';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword'; 
 import './App.css';
 
 // Protected Route Component
@@ -69,6 +71,8 @@ function AppContent() {
           <Route path="/clubs/:clubId" element={<Clubs />} />
           <Route path="/schedule" element={<Schedule />} />
           <Route path="/booking" element={<Booking />} />
+          <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
+          <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
 
           <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
           <Route path="/signup" element={<PublicRoute><Signup /></PublicRoute>} />

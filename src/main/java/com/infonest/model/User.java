@@ -1,5 +1,8 @@
 package com.infonest.model;
 import jakarta.validation.constraints.Email;
+
+import java.time.LocalDateTime;
+
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -25,6 +28,25 @@ public class User {
 
     @Column(nullable = true)
     private String clubId; // Null for ADMIN/STUDENT, Required for FACULTY
+
+    private String resetPasswordToken; 
+    private LocalDateTime tokenExpiryDate;
+
+    public void setResetPasswordToken(String token) {
+        this.resetPasswordToken = token;
+    }
+
+    public String getResetPasswordToken() {
+        return resetPasswordToken;
+    }
+
+    public void setTokenExpiryDate(LocalDateTime expiry) {
+        this.tokenExpiryDate = expiry;
+    }
+
+    public LocalDateTime getTokenExpiryDate() {
+        return tokenExpiryDate;
+    }
 }
 
 

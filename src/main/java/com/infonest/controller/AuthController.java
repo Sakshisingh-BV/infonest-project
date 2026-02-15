@@ -37,7 +37,7 @@ public class AuthController {
         
         // Step 3: Send Email using your sendEmail method
         String subject = "Infonest - Email Verification";
-        String body = "Aapka verification code hai: " + otp + "\nYe code 10 minutes ke liye valid hai.";
+        String body = "Your verification code is: " + otp + "\nThis code is valid for 10 minutes.";
         emailService.sendEmail(request.getEmail(), subject, body);
         
         return ResponseEntity.ok("OTP_SENT");

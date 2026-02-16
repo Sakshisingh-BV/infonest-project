@@ -48,6 +48,8 @@ public class SecurityConfig {
                                 "/clubofficialdashboard.html", "/clubdashboard.html", "/indivisualclub.html",
                                 "/club_form.html", "/admin_db.html", "/css/**", "/js/**", "/*.js", "/*.html")
                         .permitAll()
+                        .requestMatchers("/api/auth/forgot-password", "/error").permitAll()
+                        .requestMatchers("/api/auth/reset-password", "/error").permitAll()
                         // Public APIs
                         .requestMatchers("/api/v1/events/upcoming", "/api/v1/clubs/all").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/events/**").permitAll()
@@ -74,7 +76,7 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         // Use full origin(s) including scheme: e.g. http://localhost:3000
         configuration.setAllowedOrigins(
-                Arrays.asList("http://localhost:3000", "http://localhost:8080", "http://localhost:5173"));
+                Arrays.asList("http://localhost:3000", "http://localhost:8081", "http://localhost:5173"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type"));
         configuration.setAllowCredentials(true);

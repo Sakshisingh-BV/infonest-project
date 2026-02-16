@@ -8,6 +8,8 @@ import java.util.List;
 public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByEmail(String email); // For checking login
 
+    Optional<User> findByResetPasswordToken(String token);
+
     List<User> findByClubId(String clubId);
 
     List<User> findByRole(String role); // For getting all faculty

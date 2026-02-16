@@ -72,6 +72,14 @@ const Login = () => {
                                 {showPassword ? '🙈' : '👁️'}
                             </button>
                         </div>
+                        <div style={{ textAlign: 'right', marginTop: '8px' }}>
+                            <Link 
+                                to="/forgot-password" 
+                                style={{ fontSize: '0.85rem', color: 'var(--primary-color, #007bff)', textDecoration: 'none' }}
+                            >
+                                Forgot Password?
+                            </Link>
+                        </div>
                     </div>
 
                     <button type="submit" className="btn btn-primary btn-full" disabled={loading}>

@@ -137,6 +137,18 @@ export const adminAPI = {
     api.put('/admin/officials/remove', null, { params: { email } }),
 };
 
+// ==================== SCHEDULE API ====================
+export const scheduleAPI = {
+  uploadExcel: (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post('/office/schedule/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  },
+  findTeacher: (name) => api.get('/student/schedule/find', { params: { name } }),
+};
+
 // ==================== VENUE BOOKING API ====================
 export const venueAPI = {
   // Get all active venues

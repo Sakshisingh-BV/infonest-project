@@ -44,11 +44,16 @@ public class SecurityConfig {
                         // Auth endpoints open
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         // Allow public access to static pages (frontend will check role/client-side)
+                        // ... existing matchers ...
                         .requestMatchers("/", "/index.html", "/login.html", "/signup.html", "/student_db.html",
-                                "/clubofficialdashboard.html", "/clubdashboard.html", "/indivisualclub.html",
-                                "/club_form.html", "/admin_db.html", "/css/**", "/js/**", "/*.js", "/*.html")
-                        .permitAll()
+                                        "/clubofficialdashboard.html", "/clubdashboard.html", "/indivisualclub.html",
+                                        "/club_form.html", "/admin_db.html", "/css/**", "/js/**", "/*.js", "/*.html").permitAll()
+
+                        // Add the schedule line here, making sure it ends with a closing parenthesis before the next dot
+                        .requestMatchers("/api/v1/office/schedule/**").hasRole("OFFICE")
+
                         .requestMatchers("/api/auth/forgot-password", "/error").permitAll()
+                        // ... existing matchers ...
                         .requestMatchers("/api/auth/reset-password", "/error").permitAll()
                         // Public APIs
                         .requestMatchers("/api/v1/events/upcoming", "/api/v1/clubs/all").permitAll()

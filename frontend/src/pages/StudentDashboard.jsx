@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { studentAPI, eventsAPI } from '../services/api';
 import BackButton from '../components/BackButton';
 import './StudentDashboard.css';
+import TeacherSearch from '../components/TeacherSearch';
 
 const StudentDashboard = () => {
     const { user, logout } = useAuth();

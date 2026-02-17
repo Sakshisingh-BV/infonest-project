@@ -12,7 +12,7 @@ const OfficeDashboard = () => {
     const [venues, setVenues] = useState([]);
     const [loading, setLoading] = useState(true);
     const [message, setMessage] = useState({ type: '', text: '' });
-
+    const [selectedFile, setSelectedFile] = useState(null);
     // Add venue form
     const [showAddModal, setShowAddModal] = useState(false);
     const [venueForm, setVenueForm] = useState({
@@ -119,6 +119,9 @@ const OfficeDashboard = () => {
                 <button className={`tab-btn ${activeTab === 'venues' ? 'active' : ''}`} onClick={() => setActiveTab('venues')}>
                     🏫 Manage Venues
                 </button>
+                <button className={`tab-btn ${activeTab === 'schedules' ? 'active' : ''}`} onClick={() => setActiveTab('schedules')}>
+                    📅 Teacher Schedules
+                </button>
             </div>
 
             {/* My Bookings Tab */}
@@ -187,6 +190,39 @@ const OfficeDashboard = () => {
                 </div>
             )}
 
+            {activeTab === 'schedules' && (
+                <div className="card">
+                    <h2>📅 Bulk Upload Teacher Schedules</h2>
+                    <p className="helper-text">Please upload an Excel file (.xlsx) containing the weekly teaching hours.</p>
+                    
+                    <div className="upload-section">
+                        <div className="template-download">
+                            <button className="btn btn-secondary" onClick={downloadTemplate}>
+                                📥 Download Excel Template
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleScheduleUpload} className="bulk-upload-form">
+                            <div className="file-input-wrapper">
+                                <input 
+                                    type="file" 
+                                    id="excelFile"
+                                    onChange={(e) => setSelectedFile(e.target.files[0])} 
+                                    accept=".xlsx, .xls" 
+                                    className="file-input"
+                                />
+                                <label htmlFor="excelFile" className="file-label">
+                                    {selectedFile ? selectedFile.name : "Choose Excel File..."}
+                                </label>
+                            </div>
+                            <button className="btn btn-primary" type="submit" disabled={!selectedFile}>
+                                🚀 Upload and Process
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+
             {/* Add Venue Modal */}
             {showAddModal && (
                 <div className="modal-overlay" onClick={() => setShowAddModal(false)}>
@@ -224,6 +260,45 @@ const OfficeDashboard = () => {
             )}
         </div>
     );
+};
+
+const handleScheduleUpload = async (e) => {
+    e.preventDefault();
+    if (!selectedFile) {
+        setMessage({ type: 'error', text: 'Please select a file first!' });
+        return;
+    }
+
+    // Check file extension (Client-side validation)
+    const fileExt = selectedFile.name.split('.').pop().toLowerCase();
+    if (fileExt !== 'xlsx' && fileExt !== 'xls') {
+        setMessage({ type: 'error', text: 'Only Excel files (.xlsx, .xls) are allowed.' });
+        return;
+    }
+
+    setLoading(true);
+    try {
+        await scheduleAPI.uploadExcel(selectedFile);
+        setMessage({ type: 'success', text: 'Schedules processed and saved successfully!' });
+        setSelectedFile(null); // Clear file after success
+    } catch (err) {
+        // Handle specific backend errors
+        const errMsg = err.response?.data?.message || "Error processing Excel. Check if format is correct.";
+        setMessage({ type: 'error', text: errMsg });
+    } finally {
+        setLoading(false);
+    }
+};
+
+// Professional touch: Provide a template for the office user
+const downloadTemplate = () => {
+    const csvContent = "Teacher Name,Subject,Room No,Day,Start Time (HH:mm),End Time (HH:mm)\nDr. Smith,Computer Science,Room 101,Monday,09:00,10:00";
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'Schedule_Template.csv';
+    a.click();
 };
 
 export default OfficeDashboard;

@@ -1,63 +1,100 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { scheduleAPI } from '../services/api';
 import BackButton from '../components/BackButton';
 import './Schedule.css';
 
-// Mock schedule data
-const mockScheduleData = {
-    teacher: {
-        id: 'Dr. Sarah Johnson',
-        scheduledLocation: 'Room 301, CS Building',
-        currentLocation: 'Room 301, CS Building',
-        lastUpdated: '2 minutes ago',
-        details: 'Data Structures Lab - 10:00 AM to 12:00 PM'
-    },
-    classroom: {
-        id: 'CMS-202',
-        details: 'Operating Systems by Prof. Kumar',
-        currentLocation: 'CMS-202, Main Block',
-        scheduledLocation: 'CMS-202'
-    },
-    batch: {
-        id: 'B.Tech CS 3rd Year',
-        details: 'Database Management Systems',
-        scheduledLocation: 'Room 405, CS Building',
-        currentLocation: 'Room 405, CS Building',
-        lastUpdated: '5 minutes ago'
-    }
-};
-
 const Schedule = () => {
-    const { user, isAuthenticated } = useAuth();
+    const { user, logout } = useAuth();
     const navigate = useNavigate();
 
-    const [searchType, setSearchType] = useState('teacher');
+    // 1. State Management
     const [searchQuery, setSearchQuery] = useState('');
-    const [department, setDepartment] = useState('');
     const [showSchedule, setShowSchedule] = useState(false);
     const [scheduleData, setScheduleData] = useState(null);
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState({ type: '', text: '' });
+    
+    // Advanced Search States
+    const [showAdvanced, setShowAdvanced] = useState(false);
+    const [advancedData, setAdvancedData] = useState({ day: 'Monday', time: '09:00:00' });
 
-    const handleSearch = () => {
+    // 2. Search Logic - Option 1: Real-Time Location (Handles Tuesday/9-5 Rules)
+    const handleSearch = async () => {
         if (!searchQuery) {
-            setMessage({ type: 'error', text: 'Please enter a search query' });
+            setMessage({ type: 'error', text: 'Please enter a teacher name' });
             return;
         }
-
         setLoading(true);
         setMessage({ type: '', text: '' });
-
-        // Simulate API call
-        setTimeout(() => {
-            setScheduleData(mockScheduleData[searchType]);
+        try {
+            const response = await scheduleAPI.searchRealTime(searchQuery);
+            setScheduleData({
+                id: searchQuery,
+                currentLocation: response.data, 
+                scheduledLocation: "Live Check",
+                lastUpdated: "Just now"
+            });
             setShowSchedule(true);
+        } catch (err) {
+            setMessage({ type: 'error', text: 'Search failed. Teacher info not found.' });
+        } finally {
             setLoading(false);
-        }, 500);
+        }
     };
 
-    const canUpdateSchedule = user && user.role === 'OFFICE';
+    // 3. Search Logic - Option 2: Sitting Cabin (Column G in Excel)
+    const handleCabinSearch = async () => {
+        if (!searchQuery) {
+            setMessage({ type: 'error', text: 'Please enter a name first' });
+            return;
+        }
+        setLoading(true);
+        setMessage({ type: '', text: '' });
+        try {
+            const response = await scheduleAPI.getCabin(searchQuery);
+            setScheduleData({
+                id: searchQuery,
+                currentLocation: response.data, 
+                scheduledLocation: "Staff Cabin Area",
+                lastUpdated: "Just now"
+            });
+            setShowSchedule(true);
+        } catch (err) {
+            setMessage({ type: 'error', text: 'Cabin info not found.' });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // 4. Search Logic - Option 3: Advanced/Custom Search
+    const handleAdvancedSearch = async () => {
+        if (!searchQuery) {
+            setMessage({ type: 'error', text: 'Enter teacher name first' });
+            return;
+        }
+        setLoading(true);
+        try {
+            const response = await scheduleAPI.searchAdvanced(
+                searchQuery, 
+                advancedData.day, 
+                advancedData.time
+            );
+            setScheduleData({
+                id: searchQuery,
+                currentLocation: `Room: ${response.data.roomNo} (${response.data.subject})`,
+                scheduledLocation: `${advancedData.day} at ${advancedData.time}`,
+                lastUpdated: "Custom Query"
+            });
+            setShowAdvanced(false);
+            setShowSchedule(true);
+        } catch (err) {
+            setMessage({ type: 'error', text: 'No record found for this specific slot.' });
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
         <div className="schedule-page">
@@ -65,227 +102,99 @@ const Schedule = () => {
 
             <div className="schedule-container">
                 <header className="schedule-header">
-                    <h1>📅 View Schedules</h1>
-                    <p>Search and view schedules by teacher, classroom, or batch</p>
-                    {canUpdateSchedule && (
-                        <button className="btn btn-primary update-btn">
-                            ✏️ Update Schedule
-                        </button>
-                    )}
+                    <h1>📅 View Teacher Schedules</h1>
+                    <p>Search teacher's timetable and real-time location</p>
                 </header>
 
                 {message.text && (
                     <div className={`alert alert-${message.type}`}>
                         {message.text}
-                        <button onClick={() => setMessage({ type: '', text: '' })}>×</button>
+                        <button className="close-alert" onClick={() => setMessage({ type: '', text: '' })}>×</button>
                     </div>
                 )}
 
-                {/* Tabs */}
-                <div className="schedule-tabs">
-                    <button
-                        className={`schedule-tab ${searchType === 'teacher' ? 'active' : ''}`}
-                        onClick={() => { setSearchType('teacher'); setShowSchedule(false); setSearchQuery(''); }}
-                    >
-                        👨‍🏫 Teacher
-                    </button>
-                    <button
-                        className={`schedule-tab ${searchType === 'classroom' ? 'active' : ''}`}
-                        onClick={() => { setSearchType('classroom'); setShowSchedule(false); setSearchQuery(''); }}
-                    >
-                        🏫 Classroom
-                    </button>
-                    <button
-                        className={`schedule-tab ${searchType === 'batch' ? 'active' : ''}`}
-                        onClick={() => { setSearchType('batch'); setShowSchedule(false); setSearchQuery(''); }}
-                    >
-                        📚 Batch
-                    </button>
+                <div className="schedule-content">
+                    <div className="search-form card">
+                        <h3>Teacher Locator</h3>
+                        <p className="form-subtitle">Find where a teacher is right now or check their cabin</p>
+
+                        <div className="form-group">
+                            <label>Teacher's Name</label>
+                            <input
+                                type="text"
+                                placeholder="Enter teacher name (e.g., Pandey)"
+                                value={searchQuery}
+                                onChange={e => setSearchQuery(e.target.value)}
+                                className="search-input"
+                            />
+                        </div>
+
+                        {/* Search Mode Buttons */}
+                        <div className="search-sub-modes" style={{ marginBottom: '15px', display: 'flex', gap: '10px' }}>
+                            <button className="btn btn-secondary btn-sm" onClick={handleCabinSearch}>🏠 Sitting Cabin</button>
+                            <button className="btn btn-secondary btn-sm" onClick={() => setShowAdvanced(true)}>📅 Custom Search</button>
+                        </div>
+
+                        <button
+                            className="btn btn-primary btn-full"
+                            onClick={handleSearch}
+                            disabled={loading}
+                        >
+                            {loading ? 'Searching...' : '🔍 Locate Teacher Now'}
+                        </button>
+
+                        {/* Result Section */}
+                        {showSchedule && scheduleData && (
+                            <div className="schedule-result" style={{ marginTop: '20px' }}>
+                                <div className="location-card teacher-location">
+                                    <div className="location-icon">📍</div>
+                                    <div className="location-info">
+                                        <h4>Search Result</h4>
+                                        <div className="location-badges">
+                                            <span className="badge badge-success" style={{ fontSize: '1.1rem', padding: '12px' }}>
+                                                {scheduleData.currentLocation}
+                                            </span>
+                                        </div>
+                                        <p className="last-updated">Status: {scheduleData.scheduledLocation}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
 
-                {/* Teacher Schedule */}
-                {searchType === 'teacher' && (
-                    <div className="schedule-content">
-                        <div className="search-form card">
-                            <h3>Search Teacher Schedule</h3>
-                            <p className="form-subtitle">View teacher's timetable and real-time location</p>
-
+                {/* Advanced Search Modal Pop-up */}
+                {showAdvanced && (
+                    <div className="modal-overlay">
+                        <div className="modal card">
+                            <h3>📅 Custom Schedule Search</h3>
                             <div className="form-group">
-                                <label>Teacher's Name</label>
-                                <input
-                                    type="text"
-                                    placeholder="Enter teacher name (e.g., Dr. Sarah Johnson)"
-                                    value={searchQuery}
-                                    onChange={e => setSearchQuery(e.target.value)}
-                                />
-                            </div>
-
-                            <button
-                                className="btn btn-primary btn-full"
-                                onClick={handleSearch}
-                                disabled={loading}
-                            >
-                                {loading ? 'Searching...' : '🔍 Search Schedule'}
-                            </button>
-
-                            {showSchedule && scheduleData && (
-                                <div className="schedule-result">
-                                    <div className="schedule-pdf">
-                                        <h4>Schedule PDF</h4>
-                                        <div className="pdf-preview">
-                                            <div className="pdf-icon">📄</div>
-                                            <p>Teacher Schedule - {scheduleData.id}</p>
-                                            <button className="btn btn-secondary">View Full Schedule</button>
-                                        </div>
-                                    </div>
-
-                                    <div className="location-card teacher-location">
-                                        <div className="location-icon">📍</div>
-                                        <div className="location-info">
-                                            <h4>Real-time Location</h4>
-                                            <div className="location-badges">
-                                                <span className="label">Scheduled:</span>
-                                                <span className="badge badge-outline">{scheduleData.scheduledLocation}</span>
-                                                <span className="separator">|</span>
-                                                <span className="label">Currently in:</span>
-                                                <span className="badge badge-success">{scheduleData.currentLocation}</span>
-                                            </div>
-                                            <p className="last-updated">Last updated: {scheduleData.lastUpdated}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                )}
-
-                {/* Classroom Schedule */}
-                {searchType === 'classroom' && (
-                    <div className="schedule-content">
-                        <div className="search-form card">
-                            <h3>Search Classroom Schedule</h3>
-                            <p className="form-subtitle">View classroom timetable by department and class</p>
-
-                            <div className="form-group">
-                                <label>Department</label>
-                                <select value={department} onChange={e => setDepartment(e.target.value)}>
-                                    <option value="">Select department</option>
-                                    <option value="cs">Computer Science</option>
-                                    <option value="it">Information Technology</option>
-                                    <option value="ece">Electronics & Communication</option>
-                                    <option value="ee">Electrical Engineering</option>
+                                <label>Select Day</label>
+                                <select 
+                                    className="modal-input"
+                                    onChange={(e) => setAdvancedData({...advancedData, day: e.target.value})}
+                                >
+                                    <option value="Monday">Monday</option>
+                                    <option value="Tuesday">Tuesday</option>
+                                    <option value="Wednesday">Wednesday</option>
+                                    <option value="Thursday">Thursday</option>
+                                    <option value="Friday">Friday</option>
                                 </select>
                             </div>
-
                             <div className="form-group">
-                                <label>Classroom Name</label>
-                                <input
-                                    type="text"
-                                    placeholder="e.g., CMS-202"
-                                    value={searchQuery}
-                                    onChange={e => setSearchQuery(e.target.value)}
+                                <label>Select Time</label>
+                                <input 
+                                    type="time" 
+                                    className="modal-input"
+                                    onChange={(e) => setAdvancedData({...advancedData, time: e.target.value + ":00"})} 
                                 />
                             </div>
-
-                            <button
-                                className="btn btn-primary btn-full"
-                                onClick={handleSearch}
-                                disabled={loading}
-                            >
-                                {loading ? 'Searching...' : '🔍 Search Schedule'}
-                            </button>
-
-                            {showSchedule && scheduleData && (
-                                <div className="schedule-result">
-                                    <div className="schedule-pdf">
-                                        <h4>Classroom Schedule</h4>
-                                        <div className="pdf-preview">
-                                            <div className="pdf-icon">📄</div>
-                                            <p>Weekly Schedule - {scheduleData.id}</p>
-                                            <button className="btn btn-secondary">View Full Schedule</button>
-                                        </div>
-                                    </div>
-
-                                    <div className="location-card classroom-location">
-                                        <div className="location-icon">📍</div>
-                                        <div className="location-info">
-                                            <h4>Current Class</h4>
-                                            <p className="class-details">{scheduleData.details}</p>
-                                            <div className="location-badges">
-                                                <span className="label">Location:</span>
-                                                <span className="badge badge-secondary">{scheduleData.currentLocation}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                )}
-
-                {/* Batch Schedule */}
-                {searchType === 'batch' && (
-                    <div className="schedule-content">
-                        <div className="search-form card">
-                            <h3>Search Batch Schedule</h3>
-                            <p className="form-subtitle">View timetable for a specific batch</p>
-
-                            <div className="form-group">
-                                <label>Department</label>
-                                <select value={department} onChange={e => setDepartment(e.target.value)}>
-                                    <option value="">Select department</option>
-                                    <option value="cs">Computer Science</option>
-                                    <option value="it">Information Technology</option>
-                                    <option value="ece">Electronics & Communication</option>
-                                    <option value="ee">Electrical Engineering</option>
-                                </select>
+                            <div className="modal-actions">
+                                <button className="btn btn-primary" onClick={handleAdvancedSearch} disabled={loading}>
+                                    {loading ? 'Searching...' : 'Search Slot'}
+                                </button>
+                                <button className="btn btn-secondary" onClick={() => setShowAdvanced(false)}>Cancel</button>
                             </div>
-
-                            <div className="form-group">
-                                <label>Batch Name</label>
-                                <input
-                                    type="text"
-                                    placeholder="e.g., B.Tech CS 3rd Year"
-                                    value={searchQuery}
-                                    onChange={e => setSearchQuery(e.target.value)}
-                                />
-                            </div>
-
-                            <button
-                                className="btn btn-primary btn-full"
-                                onClick={handleSearch}
-                                disabled={loading}
-                            >
-                                {loading ? 'Searching...' : '🔍 Search Schedule'}
-                            </button>
-
-                            {showSchedule && scheduleData && (
-                                <div className="schedule-result">
-                                    <div className="schedule-pdf">
-                                        <h4>Batch Timetable</h4>
-                                        <div className="pdf-preview">
-                                            <div className="pdf-icon">📄</div>
-                                            <p>Timetable - {scheduleData.id}</p>
-                                            <button className="btn btn-secondary">View Full Timetable</button>
-                                        </div>
-                                    </div>
-
-                                    <div className="location-card batch-location">
-                                        <div className="location-icon">📍</div>
-                                        <div className="location-info">
-                                            <h4>Current Location</h4>
-                                            <p className="class-details">{scheduleData.details}</p>
-                                            <div className="location-badges">
-                                                <span className="label">Scheduled:</span>
-                                                <span className="badge badge-outline">{scheduleData.scheduledLocation}</span>
-                                                <span className="separator">|</span>
-                                                <span className="label">Currently:</span>
-                                                <span className="badge badge-success">{scheduleData.currentLocation}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
                         </div>
                     </div>
                 )}

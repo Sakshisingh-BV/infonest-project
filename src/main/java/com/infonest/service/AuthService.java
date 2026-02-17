@@ -18,8 +18,8 @@ public class AuthService {
     @Autowired
     private UserRepository userRepository;
 
-    @Autowired
-    private ClubRepository clubRepository;
+    // @Autowired
+    // private ClubRepository clubRepository;
 
     @Autowired
     private PasswordEncoder passwordEncoder;

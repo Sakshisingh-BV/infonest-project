@@ -2,42 +2,62 @@ import { useState } from 'react';
 import { scheduleAPI } from '../services/api';
 
 const TeacherSearch = () => {
-    const [query, setQuery] = useState('');
+    const [name, setName] = useState('');
+    const [mode, setMode] = useState('realtime'); // realtime, cabin, advanced
     const [result, setResult] = useState(null);
-    const [error, setError] = useState('');
+    const [advanced, setAdvanced] = useState({ day: 'Monday', time: '10:00:00' });
 
-    const handleSearch = async (e) => {
-        e.preventDefault();
-        setError('');
+    const handleSearch = async () => {
         try {
-            const response = await scheduleAPI.findTeacher(query);
-            setResult(response.data);
+            let data;
+            if (mode === 'realtime') {
+                data = await scheduleAPI.searchTeacher(name);
+            } else if (mode === 'cabin') {
+                data = await scheduleAPI.getCabin(name);
+            } else {
+                data = await scheduleAPI.searchAdvanced(name, advanced.day, advanced.time);
+            }
+            setResult(data.data);
         } catch (err) {
-            setResult(null);
-            setError("No active class found for this teacher right now.");
+            setResult({ error: "No info found for this search." });
         }
     };
 
     return (
-        <div className="search-container card">
-            <h3>🔍 Find Teacher Real-Time</h3>
-            <form onSubmit={handleSearch}>
-                <input 
-                    type="text" 
-                    placeholder="Enter Teacher's Name..." 
-                    value={query} 
-                    onChange={(e) => setQuery(e.target.value)} 
-                />
-                <button type="submit" className="btn btn-primary">Locate</button>
-            </form>
+        <div className="teacher-search-container">
+            <div className="mode-selector">
+                <button className={mode === 'realtime' ? 'active' : ''} onClick={() => setMode('realtime')}>Where is she now?</button>
+                <button className={mode === 'cabin' ? 'active' : ''} onClick={() => setMode('cabin')}>Find Sitting Cabin</button>
+                <button className={mode === 'advanced' ? 'active' : ''} onClick={() => setMode('advanced')}>Search by Day/Time</button>
+            </div>
 
-            {result && (
-                <div className="location-result success">
-                    <p>✅ <strong>{result.teacherName}</strong> is currently in <strong>{result.roomNo}</strong></p>
-                    <p>Subject: {result.subject} | Until: {result.endTime}</p>
+            <input 
+                type="text" 
+                placeholder="Teacher Name (e.g. Pandey)" 
+                value={name} 
+                onChange={(e) => setName(e.target.value)} 
+            />
+
+            {mode === 'advanced' && (
+                <div className="advanced-inputs">
+                    <select onChange={(e) => setAdvanced({...advanced, day: e.target.value})}>
+                        <option>Monday</option><option>Tuesday</option><option>Wednesday</option>
+                        <option>Thursday</option><option>Friday</option>
+                    </select>
+                    <input type="time" onChange={(e) => setAdvanced({...advanced, time: e.target.value + ":00"})} />
                 </div>
             )}
-            {error && <p className="error-text">{error}</p>}
+
+            <button className="btn-locate" onClick={handleSearch}>Locate</button>
+
+            {result && (
+                <div className="search-result card">
+                    {result.error ? <p>{result.error}</p> : (
+                        mode === 'cabin' ? <p>📍 Sitting Cabin: <strong>{result}</strong></p> :
+                        <p>📍 {result.teacherName} is in <strong>{result.roomNo}</strong> for {result.subject}</p>
+                    )}
+                </div>
+            )}
         </div>
     );
 };

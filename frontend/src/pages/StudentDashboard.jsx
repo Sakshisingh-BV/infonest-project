@@ -72,7 +72,6 @@ const StudentDashboard = () => {
                     <button className="btn btn-danger" onClick={logout}>Logout</button>
                 </div>
             </header>
-
             <div className="card">
                 <h2>📋 My Event Registrations</h2>
                 <table>

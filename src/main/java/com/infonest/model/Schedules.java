@@ -1,10 +1,10 @@
 package com.infonest.model;
 
-import jakarta.persistence.*; // Correct for Spring Boot 3+
+import jakarta.persistence.*;
 import lombok.Data;
 import java.time.LocalTime;
 
-@Entity // <--- THIS IS WHAT HIBERNATE IS LOOKING FOR
+@Entity
 @Table(name = "schedules")
 @Data
 public class Schedules {
@@ -19,4 +19,5 @@ public class Schedules {
     private LocalTime startTime;
     private LocalTime endTime;
     private String documentUrl;
+    private String sittingCabin; // Added for the new requirement
 }

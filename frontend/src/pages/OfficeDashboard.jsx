@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { venueAPI } from '../services/api';
+import { venueAPI, scheduleAPI } from '../services/api';
 import BackButton from '../components/BackButton';
 import './OfficeDashboard.css';
 
@@ -83,6 +83,44 @@ const OfficeDashboard = () => {
         return <div className="office-dashboard"><div className="loading-container"><div className="loader"></div></div></div>;
     }
 
+    const handleScheduleUpload = async (e) => {
+    e.preventDefault();
+    if (!selectedFile) {
+        setMessage({ type: 'error', text: 'Please select a file first!' });
+        return;
+    }
+
+    // Check file extension (Client-side validation)
+    const fileExt = selectedFile.name.split('.').pop().toLowerCase();
+    if (fileExt !== 'xlsx' && fileExt !== 'xls') {
+        setMessage({ type: 'error', text: 'Only Excel files (.xlsx, .xls) are allowed.' });
+        return;
+    }
+
+    setLoading(true);
+    try {
+        await scheduleAPI.uploadExcel(selectedFile);
+        setMessage({ type: 'success', text: 'Schedules processed and saved successfully!' });
+        setSelectedFile(null); // Clear file after success
+    } catch (err) {
+        // Handle specific backend errors
+        const errMsg = err.response?.data?.message || "Error processing Excel. Check if format is correct.";
+        setMessage({ type: 'error', text: errMsg });
+    } finally {
+        setLoading(false);
+    }
+};
+
+// Professional touch: Provide a template for the office user
+const downloadTemplate = () => {
+    const csvContent = "Teacher Name,Subject,Room No,Day,Start Time (HH:mm),End Time (HH:mm)\nDr. Smith,Computer Science,Room 101,Monday,09:00,10:00";
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'Schedule_Template.csv';
+    a.click();
+};
     return (
         <div className="office-dashboard">
             <BackButton />
@@ -262,43 +300,6 @@ const OfficeDashboard = () => {
     );
 };
 
-const handleScheduleUpload = async (e) => {
-    e.preventDefault();
-    if (!selectedFile) {
-        setMessage({ type: 'error', text: 'Please select a file first!' });
-        return;
-    }
 
-    // Check file extension (Client-side validation)
-    const fileExt = selectedFile.name.split('.').pop().toLowerCase();
-    if (fileExt !== 'xlsx' && fileExt !== 'xls') {
-        setMessage({ type: 'error', text: 'Only Excel files (.xlsx, .xls) are allowed.' });
-        return;
-    }
-
-    setLoading(true);
-    try {
-        await scheduleAPI.uploadExcel(selectedFile);
-        setMessage({ type: 'success', text: 'Schedules processed and saved successfully!' });
-        setSelectedFile(null); // Clear file after success
-    } catch (err) {
-        // Handle specific backend errors
-        const errMsg = err.response?.data?.message || "Error processing Excel. Check if format is correct.";
-        setMessage({ type: 'error', text: errMsg });
-    } finally {
-        setLoading(false);
-    }
-};
-
-// Professional touch: Provide a template for the office user
-const downloadTemplate = () => {
-    const csvContent = "Teacher Name,Subject,Room No,Day,Start Time (HH:mm),End Time (HH:mm)\nDr. Smith,Computer Science,Room 101,Monday,09:00,10:00";
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'Schedule_Template.csv';
-    a.click();
-};
 
 export default OfficeDashboard;

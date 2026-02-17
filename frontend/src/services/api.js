@@ -139,14 +139,23 @@ export const adminAPI = {
 
 // ==================== SCHEDULE API ====================
 export const scheduleAPI = {
-  uploadExcel: (file) => {
-    const formData = new FormData();
-    formData.append('file', file);
-    return api.post('/office/schedule/upload', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
-  },
-  findTeacher: (name) => api.get('/student/schedule/find', { params: { name } }),
+    // Current class search
+    searchRealTime: (name) => api.get(`/office/schedule/search/now?name=${name}`),
+    
+    // Find teacher's cabin
+    getCabin: (name) => api.get(`/office/schedule/cabin?name=${name}`),
+    
+    // Search by specific details
+    searchAdvanced: (name, day, time) => 
+        api.get(`/office/schedule/search/advanced?name=${name}&day=${day}&time=${time}`),
+
+    uploadExcel: (file) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        return api.post('/office/schedule/upload', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+    }
 };
 
 // ==================== VENUE BOOKING API ====================

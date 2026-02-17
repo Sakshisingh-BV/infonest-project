@@ -68,8 +68,9 @@ const Login = () => {
                                 type="button"
                                 className="eye-btn"
                                 onClick={() => setShowPassword(!showPassword)}
+                                style={{ fontSize: '0.75rem', fontWeight: 'bold' }}
                             >
-                                {showPassword ? '🙈' : '👁️'}
+                                {showPassword ? 'HIDE' : 'SHOW'}
                             </button>
                         </div>
                         <div style={{ textAlign: 'right', marginTop: '8px' }}>

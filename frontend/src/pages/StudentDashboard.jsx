@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { studentAPI, eventsAPI } from '../services/api';
 import BackButton from '../components/BackButton';
 import './StudentDashboard.css';
+import TeacherSearch from '../components/TeacherSearch';
 
 const StudentDashboard = () => {
     const { user, logout } = useAuth();
@@ -71,7 +72,6 @@ const StudentDashboard = () => {
                     <button className="btn btn-danger" onClick={logout}>Logout</button>
                 </div>
             </header>
-
             <div className="card">
                 <h2>📋 My Event Registrations</h2>
                 <table>

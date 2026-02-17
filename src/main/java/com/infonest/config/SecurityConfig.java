@@ -44,11 +44,16 @@ public class SecurityConfig {
                         // Auth endpoints open
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         // Allow public access to static pages (frontend will check role/client-side)
+                        // ... existing matchers ...
                         .requestMatchers("/", "/index.html", "/login.html", "/signup.html", "/student_db.html",
-                                "/clubofficialdashboard.html", "/clubdashboard.html", "/indivisualclub.html",
-                                "/club_form.html", "/admin_db.html", "/css/**", "/js/**", "/*.js", "/*.html")
-                        .permitAll()
+                                        "/clubofficialdashboard.html", "/clubdashboard.html", "/indivisualclub.html",
+                                        "/club_form.html", "/admin_db.html", "/css/**", "/js/**", "/*.js", "/*.html").permitAll()
+
+                        // Add the schedule line here, making sure it ends with a closing parenthesis before the next dot
+                        //.requestMatchers("/api/v1/office/schedule/**").hasRole("OFFICE")
+
                         .requestMatchers("/api/auth/forgot-password", "/error").permitAll()
+                        // ... existing matchers ...
                         .requestMatchers("/api/auth/reset-password", "/error").permitAll()
                         // Public APIs
                         .requestMatchers("/api/v1/events/upcoming", "/api/v1/clubs/all").permitAll()
@@ -64,6 +69,22 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/venues/all", "/api/v1/venues/count").permitAll()
                         .requestMatchers("/api/v1/venues/**").authenticated()
                         // everything else authenticated
+
+                        // ... existing static page and public API matchers ...
+
+                        // --- START OF PROFESSIONAL SCHEDULE SECURITY ---
+                        // 1. SPECIFIC endpoints for locator service (MUST be permitAll)
+                        .requestMatchers("/api/v1/office/schedule/search/**").permitAll()
+                        .requestMatchers("/api/v1/office/schedule/cabin/**").permitAll()
+
+                        // 2. SPECIFIC endpoint for administrative upload (Strictly OFFICE role)
+                        .requestMatchers("/api/v1/office/schedule/upload").hasRole("OFFICE")
+
+                        // 3. Catch-all for any other office paths (Restrictive by default)
+                        .requestMatchers("/api/v1/office/**").hasRole("OFFICE")
+                        // --- END OF PROFESSIONAL SCHEDULE SECURITY ---
+
+                        // 4. Final catch-all for anything else
                         .anyRequest().authenticated())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);

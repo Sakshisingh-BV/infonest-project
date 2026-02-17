@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import BackButton from '../components/BackButton';
-import axios from 'axios'; // Isse hum OTP request bhejenge
+import axios from 'axios'; 
 import './Auth.css';
 
 const Signup = () => {
@@ -20,7 +20,6 @@ const Signup = () => {
     const [success, setSuccess] = useState('');
     const [loading, setLoading] = useState(false);
     
-    // Nayi states verification ke liye
     const [otp, setOtp] = useState('');
     const [showOtpField, setShowOtpField] = useState(false);
 
@@ -31,7 +30,6 @@ const Signup = () => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
-    // Pehle ye function OTP bhejega
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
@@ -44,7 +42,6 @@ const Signup = () => {
 
         setLoading(true);
         try {
-            // Backend ko request bhej rahe hain OTP generate karne ke liye
             const res = await axios.post('http://localhost:8081/api/v1/auth/signup', formData);
             if (res.data === "OTP_SENT") {
                 setShowOtpField(true);
@@ -56,7 +53,6 @@ const Signup = () => {
         setLoading(false);
     };
 
-    // Ye function OTP verify karke aapka purana signup() call karega
     const handleVerifyOtp = async (e) => {
         e.preventDefault();
         setError('');
@@ -165,8 +161,9 @@ const Signup = () => {
                                     type="button"
                                     className="eye-btn"
                                     onClick={() => setShowPassword(!showPassword)}
+                                    style={{ fontSize: '0.7rem', fontWeight: 'bold' }}
                                 >
-                                    {showPassword ? '🙈' : '👁️'}
+                                    {showPassword ? 'HIDE' : 'SHOW'}
                                 </button>
                             </div>
                             <p className="password-hint">Min 8 characters, 1 uppercase, 1 special character</p>

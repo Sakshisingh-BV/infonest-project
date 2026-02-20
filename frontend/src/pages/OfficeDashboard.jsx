@@ -13,6 +13,42 @@ const OfficeDashboard = () => {
     const [loading, setLoading] = useState(true);
     const [message, setMessage] = useState({ type: '', text: '' });
     const [selectedFile, setSelectedFile] = useState(null);
+    const [teacherSearch, setTeacherSearch] = useState('');
+    const [teacherResults, setTeacherResults] = useState([]);
+    const [selectedTeacher, setSelectedTeacher] = useState(null);
+    const [isUpdateMode, setIsUpdateMode] = useState(false);
+
+    // Teacher search function
+    const handleTeacherSearch = async () => {
+        if (!teacherSearch) return;
+        try {
+            const response = await scheduleAPI.searchTeachers(teacherSearch);
+            setTeacherResults(response.data);
+        } catch (err) {
+            setMessage({ type: 'error', text: 'Teacher not found' });
+            setTeacherResults([]);
+        }
+    };
+
+    // Updated Upload function (Jo isUpdate flag bhej sake)
+    const handleOfficeScheduleUpload = async (e) => {
+        e.preventDefault();
+        if (!selectedFile) return;
+
+        setLoading(true);
+        try {
+            // Hamare naye API logic ke hisaab se isUpdate pass karenge
+            await scheduleAPI.uploadExcel(selectedFile, isUpdateMode);
+            setMessage({ type: 'success', text: isUpdateMode ? 'Schedule replaced!' : 'Schedule added!' });
+            setSelectedFile(null);
+            setSelectedTeacher(null);
+            setTeacherResults([]);
+        } catch (err) {
+            setMessage({ type: 'error', text: err.response?.data?.message || "Upload failed" });
+        } finally {
+            setLoading(false);
+        }
+    };
     // Add venue form
     const [showAddModal, setShowAddModal] = useState(false);
     const [venueForm, setVenueForm] = useState({
@@ -229,37 +265,65 @@ const downloadTemplate = () => {
             )}
 
             {activeTab === 'schedules' && (
-                <div className="card">
-                    <h2>📅 Bulk Upload Teacher Schedules</h2>
-                    <p className="helper-text">Please upload an Excel file (.xlsx) containing the weekly teaching hours.</p>
-                    
-                    <div className="upload-section">
-                        <div className="template-download">
-                            <button className="btn btn-secondary" onClick={downloadTemplate}>
-                                📥 Download Excel Template
-                            </button>
-                        </div>
+            <div className="card">
+                <h2>📅 Manage Teacher Schedules</h2>
+                
+                {/* Step 1: Search Teacher First */}
+                <div className="management-search-bar" style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+                    <input 
+                        type="text" 
+                        placeholder="Search teacher to Manage (Add/Edit/Delete)..." 
+                        className="form-control"
+                        value={teacherSearch}
+                        onChange={(e) => setTeacherSearch(e.target.value)}
+                    />
+                    <button className="btn btn-primary" onClick={handleTeacherSearch}>🔍 Search</button>
+                </div>
 
-                        <form onSubmit={handleScheduleUpload} className="bulk-upload-form">
-                            <div className="file-input-wrapper">
-                                <input 
-                                    type="file" 
-                                    id="excelFile"
-                                    onChange={(e) => setSelectedFile(e.target.files[0])} 
-                                    accept=".xlsx, .xls" 
-                                    className="file-input"
-                                />
-                                <label htmlFor="excelFile" className="file-label">
-                                    {selectedFile ? selectedFile.name : "Choose Excel File..."}
-                                </label>
+                {/* Step 2: Teacher Results Dropdown */}
+                {teacherResults.length > 0 && (
+                    <div className="teacher-results-list" style={{ marginBottom: '20px', border: '1px solid var(--border)', borderRadius: '8px' }}>
+                        {teacherResults.map(t => (
+                            <div key={t.userId} className="teacher-item" style={{ display: 'flex', justifyContent: 'space-between', padding: '10px', borderBottom: '1px solid var(--border)' }}>
+                                <span><strong>{t.firstName} {t.lastName}</strong> ({t.email})</span>
+                                <div className="action-buttons">
+                                    <button className="btn-sm" onClick={() => { setSelectedTeacher(t); setIsUpdateMode(false); }}>➕ Add</button>
+                                    <button className="btn-sm" onClick={() => { setSelectedTeacher(t); setIsUpdateMode(true); }}>🔄 Edit</button>
+                                    <button className="btn-sm btn-danger" onClick={() => handleDeleteVenue(t.firstName)}>🗑️ Delete</button>
+                                </div>
                             </div>
-                            <button className="btn btn-primary" type="submit" disabled={!selectedFile}>
-                                🚀 Upload and Process
-                            </button>
+                        ))}
+                    </div>
+                )}
+
+                {/* Step 3: Dynamic Upload Box */}
+                {selectedTeacher && (
+                    <div className="upload-section card" style={{ border: '2px solid var(--primary)' }}>
+                        <h3>{isUpdateMode ? '🔄 Replace' : '➕ Add'} Schedule for {selectedTeacher.firstName}</h3>
+                        <form onSubmit={handleOfficeScheduleUpload}>
+                            <input 
+                                type="file" 
+                                accept=".xlsx, .xls" 
+                                onChange={(e) => setSelectedFile(e.target.files[0])} 
+                                className="form-control"
+                            />
+                            <div className="modal-actions" style={{ marginTop: '10px', display: 'flex', gap: '10px' }}>
+                                <button type="submit" className="btn btn-primary">Upload Excel</button>
+                                <button type="button" className="btn btn-secondary" onClick={() => setSelectedTeacher(null)}>Cancel</button>
+                            </div>
                         </form>
                     </div>
+                )}
+
+                <hr style={{ margin: '30px 0', border: '0.5px solid var(--border)' }} />
+                
+                {/* Bulk Template Section */}
+                <div className="template-section">
+                    <p className="helper-text">New here? Download the template to format your schedule correctly.</p>
+                    <button className="btn btn-secondary" onClick={downloadTemplate}>📥 Download Excel Template</button>
                 </div>
-            )}
+            </div>
+        )}
 
             {/* Add Venue Modal */}
             {showAddModal && (

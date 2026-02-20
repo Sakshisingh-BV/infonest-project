@@ -1,5 +1,7 @@
 package com.infonest.repository;
 
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.transaction.annotation.Transactional;
 import com.infonest.model.Schedules;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -17,6 +19,13 @@ public interface ScheduleRepository extends JpaRepository<Schedules, Long> {
        "AND s.dayOfWeek = :day AND :currentTime BETWEEN s.startTime AND s.endTime")
 Optional<Schedules> findCurrentLocation(@Param("name") String name, @Param("day") String day, @Param("currentTime") LocalTime currentTime);
 
+@Modifying
+    @Transactional
+    @Query("DELETE FROM Schedules s WHERE s.teacherName = :name")
+    void deleteByTeacherName(@Param("name") String name);
+
+    
+
     // Use ILIKE and DISTINCT to prevent "Non-Unique Result" errors which cause 500 errors
 @Query("SELECT DISTINCT s.sittingCabin FROM Schedules s WHERE s.teacherName ILIKE %:name%")
 Optional<String> findSittingCabin(@Param("name") String name);
@@ -31,3 +40,4 @@ Optional<Schedules> findSpecificSlot(
     @Param("time") java.time.LocalTime time
 );
 }
+// Role validation ke liye zaroori hai

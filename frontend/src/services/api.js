@@ -149,9 +149,15 @@ export const scheduleAPI = {
     searchAdvanced: (name, day, time) => 
         api.get(`/office/schedule/search/advanced?name=${name}&day=${day}&time=${time}`),
 
-    uploadExcel: (file) => {
+    searchTeachers: (query) => api.get(`/office/schedule/teachers/search?query=${query}`),
+
+    // Delete a teacher's schedule
+    deleteSchedule: (teacherName) => api.delete(`/office/schedule/delete-teacher-schedule?teacherName=${teacherName}`),
+
+    uploadExcel: (file, isUpdate = false) => {
         const formData = new FormData();
         formData.append('file', file);
+        formData.append('isUpdate', isUpdate);
         return api.post('/office/schedule/upload', formData, {
             headers: { 'Content-Type': 'multipart/form-data' }
         });

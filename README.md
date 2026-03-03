@@ -115,8 +115,7 @@ Integrated with ERP system for real-time academic scheduling.
 # 📸 UI Screenshots
 
 > Replace the image paths below with your actual screenshot folder.
-![Dashboard](![Dashboard](Screenshot%202026-03-03%20113310.png))
-
+![Dashboard](dashboard.png)
 
 ---
 

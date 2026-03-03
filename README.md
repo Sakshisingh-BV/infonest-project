@@ -130,6 +130,3 @@ Integrated with ERP system for real-time academic scheduling.
 - ✔ Secure Role-Based Authentication  
 
 ---
-
-## 👩‍💻 Developed By
-**Sakshi Singh**

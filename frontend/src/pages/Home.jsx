@@ -1,343 +1,224 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
 import { statsAPI } from '../services/api';
-import { motion, useInView } from 'framer-motion';
+import { motion, useInView, useScroll, useTransform } from 'framer-motion';
 import './Home.css';
 
-// Animated Counter Component
-const AnimatedCounter = ({ value, suffix = '' }) => {
-    const [displayValue, setDisplayValue] = useState(0);
+/* ─── Animated Counter ────────────────────────────────── */
+const AnimatedCounter = ({ value }) => {
+    const [display, setDisplay] = useState(0);
     const ref = useRef(null);
-    const isInView = useInView(ref, { once: false, margin: "-100px" });
+    const inView = useInView(ref, { once: false, margin: '-80px' });
 
     useEffect(() => {
-        if (!isInView) return;
-
-        let startTime;
-        const duration = 1500;
-
-        const animate = (currentTime) => {
-            if (!startTime) startTime = currentTime;
-            const progress = Math.min((currentTime - startTime) / duration, 1);
-            const easeOutQuart = 1 - Math.pow(1 - progress, 4);
-            setDisplayValue(Math.floor(easeOutQuart * value));
-            if (progress < 1) {
-                requestAnimationFrame(animate);
-            }
+        if (!inView) return;
+        let start;
+        const dur = 1400;
+        const step = (t) => {
+            if (!start) start = t;
+            const p = Math.min((t - start) / dur, 1);
+            setDisplay(Math.floor((1 - Math.pow(1 - p, 3)) * value));
+            if (p < 1) requestAnimationFrame(step);
         };
+        requestAnimationFrame(step);
+    }, [inView, value]);
 
-        requestAnimationFrame(animate);
-    }, [isInView, value]);
-
-    return <span ref={ref}>{displayValue}{suffix}</span>;
+    return <span ref={ref}>{display}</span>;
 };
 
-// Typewriter Effect Component with blinking cursor
-// Uses MutationObserver to watch the actual DOM for dark mode — bypasses all context/cascade issues
-const TypewriterEffect = ({ blackText = '', orangeText = '', className }) => {
-    const [displayBlackText, setDisplayBlackText] = useState('');
-    const [displayOrangeText, setDisplayOrangeText] = useState('');
-    const [blackIndex, setBlackIndex] = useState(0);
-    const [orangeIndex, setOrangeIndex] = useState(0);
-    const [isBlackComplete, setIsBlackComplete] = useState(false);
-    const [isAllComplete, setIsAllComplete] = useState(false);
-    const [isDark, setIsDark] = useState(false);
+/* ─── Typewriter ──────────────────────────────────────── */
+const Typewriter = ({ parts = [] }) => {
+    const [text, setText] = useState('');
+    const [partIdx, setPartIdx] = useState(0);
+    const [charIdx, setCharIdx] = useState(0);
+    const [done, setDone] = useState(false);
     const ref = useRef(null);
-    const isInView = useInView(ref, { once: true, margin: "-100px" });
-
-    // Watch the DOM directly for any dark-mode class/attribute on html or body
-    useEffect(() => {
-        const checkDark = () => {
-            const html = document.documentElement;
-            const body = document.body;
-            const dark =
-                html.getAttribute('data-theme') === 'dark' ||
-                html.classList.contains('dark') ||
-                html.classList.contains('dark-mode') ||
-                body.getAttribute('data-theme') === 'dark' ||
-                body.classList.contains('dark') ||
-                body.classList.contains('dark-mode');
-            setIsDark(dark);
-        };
-
-        checkDark(); // run immediately
-
-        // Watch for any attribute/class change on html and body
-        const observer = new MutationObserver(checkDark);
-        observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme'] });
-        observer.observe(document.body, { attributes: true, attributeFilter: ['class', 'data-theme'] });
-
-        return () => observer.disconnect();
-    }, []);
+    const inView = useInView(ref, { once: true });
 
     useEffect(() => {
-        if (!isInView) {
-            setDisplayBlackText('');
-            setDisplayOrangeText('');
-            setBlackIndex(0);
-            setOrangeIndex(0);
-            setIsBlackComplete(false);
-            setIsAllComplete(false);
-            return;
-        }
+        if (!inView) return;
+        if (partIdx >= parts.length) { setDone(true); return; }
+        const cur = parts[partIdx].text;
+        if (charIdx < cur.length) {
+            const t = setTimeout(() => {
+                setText(prev => prev + cur[charIdx]);
+                setCharIdx(c => c + 1);
+            }, 36);
+            return () => clearTimeout(t);
+        } else { setPartIdx(p => p + 1); setCharIdx(0); }
+    }, [inView, partIdx, charIdx, parts]);
 
-        if (blackIndex < blackText.length) {
-            const timeout = setTimeout(() => {
-                setDisplayBlackText(prev => prev + blackText[blackIndex]);
-                setBlackIndex(blackIndex + 1);
-            }, 45);
-            return () => clearTimeout(timeout);
-        } else if (!isBlackComplete) {
-            setIsBlackComplete(true);
-        }
-
-        if (isBlackComplete && orangeIndex < orangeText.length) {
-            const timeout = setTimeout(() => {
-                setDisplayOrangeText(prev => prev + orangeText[orangeIndex]);
-                setOrangeIndex(orangeIndex + 1);
-            }, 45);
-            return () => clearTimeout(timeout);
-        } else if (isBlackComplete && orangeIndex >= orangeText.length && !isAllComplete) {
-            setIsAllComplete(true);
-        }
-    }, [isInView, blackIndex, orangeIndex, isBlackComplete, blackText, orangeText, isAllComplete]);
+    let consumed = 0;
+    const segs = parts.map((p, i) => {
+        const chunk = text.slice(consumed, consumed + p.text.length);
+        consumed += p.text.length;
+        return <span key={i} style={{ color: p.color }}>{chunk}</span>;
+    });
 
     return (
-        <span ref={ref} className={className}>
-            <span style={{ color: isDark ? '#ffffff' : '#111827', transition: 'color 0.3s ease' }}>
-                {displayBlackText}
-            </span>
-            <span className="title-orange">{displayOrangeText}</span>
-            <span className={`typewriter-cursor${isAllComplete ? ' cursor-blink' : ' cursor-typing'}`}>|</span>
+        <span ref={ref}>
+            {segs}
+            {!done && <span className="tw-cursor">|</span>}
         </span>
     );
 };
 
-// Floating Shape Background Component — CSS-only, no Framer Motion to avoid rAF conflicts
-const FloatingShapes = () => {
-    const shapes = Array.from({ length: 8 });
-    return (
-        <div className="floating-shapes">
-            {shapes.map((_, i) => (
-                <div key={i} className={`floating-shape shape-${i + 1}`} />
+/* ─── Marquee ─────────────────────────────────────────── */
+const Marquee = ({ items }) => (
+    <div className="marquee-wrap">
+        <div className="marquee-track">
+            {[...items, ...items].map((item, i) => (
+                <span key={i} className="marquee-item">
+                    <span className="marquee-dot" />{item}
+                </span>
             ))}
         </div>
-    );
-};
+    </div>
+);
 
-// Simple fade-up wrapper — whileInView fires once and disconnects, no continuous scroll listener
-const FadeUp = ({ children, className, delay = 0, once = true }) => {
-    return (
-        <motion.div
-            className={className}
-            initial={{ opacity: 0, y: 48 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once, margin: "-80px" }}
-            transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay }}
-        >
-            {children}
-        </motion.div>
-    );
-};
+/* ─── Flip Card ───────────────────────────────────────── */
+// Icons matching the video: person silhouette → calendar → map pin
+const ICONS = ['👤', '📅', '📍'];
 
-// Module card — hover-only animations, NO scroll-triggered entrance (prevents lag)
-const ModuleCard = ({ onClick, imgSrc, imgAlt, title, description, features, index }) => {
-    const [hovered, setHovered] = useState(false);
+const FlipCard = ({ card, index, onNavigate }) => (
+    <motion.div
+        className={`flip-card flip-card--${index}`}
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: '-40px' }}
+        transition={{ duration: 0.5, delay: index * 0.1, ease: [0.16, 1, 0.3, 1] }}
+    >
+        <div className="flip-card__inner">
 
-    const hoverAnimations = [
-        { rotate: -2, y: -14, scale: 1.03 },
-        { rotate:  0, y: -18, scale: 1.05 },
-        { rotate:  2, y: -14, scale: 1.03 },
-    ];
+            {/* FRONT */}
+            <div className="flip-card__front">
+                <div className="flip-card__front-icon">{ICONS[index]}</div>
+                <h3 className="flip-card__front-title">{card.title}</h3>
+                <div className="flip-card__front-hint">Click to explore →</div>
+                <div className="flip-card__front-orb" />
+            </div>
 
-    const accentColors = ['#6366f1', '#06b6d4', '#f59e0b'];
+            {/* BACK */}
+            <div className="flip-card__back">
+                <div className="flip-card__back-header">
+                    <h3 className="flip-card__back-title">{card.title}</h3>
+                    <p className="flip-card__back-desc">{card.description}</p>
+                    <ul className="flip-card__back-features">
+                        {card.features.map((f, i) => <li key={i}>{f}</li>)}
+                    </ul>
+                </div>
+                <button
+                    className="flip-card__back-cta"
+                    onClick={() => onNavigate(card.path)}
+                >
+                    Explore Module →
+                </button>
+            </div>
 
-    return (
-        <motion.div
-            className={`module-card module-card--${index}`}
-            onClick={onClick}
-            whileHover={hoverAnimations[index]}
-            onHoverStart={() => setHovered(true)}
-            onHoverEnd={() => setHovered(false)}
-            style={{ '--card-accent': accentColors[index] }}
-        >
-            <motion.div
-                className="module-card__accent-bar"
-                initial={{ scaleX: 0 }}
-                animate={{ scaleX: hovered ? 1 : 0 }}
-                transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-            />
+        </div>
+    </motion.div>
+);
 
-            <motion.img
-                src={imgSrc}
-                alt={imgAlt}
-                className="module-icon-img"
-                animate={hovered ? {
-                    y: index === 1 ? [0, -8, 0] : index === 0 ? [0, -6, 2, -4, 0] : [0, -6, -6, 0],
-                    rotate: index === 0 ? [-2, 2, -2] : index === 2 ? [2, -2, 2] : 0,
-                } : { y: 0, rotate: 0 }}
-                transition={{ duration: 0.6, ease: "easeInOut" }}
-            />
-
-            <h3 className="module-title">{title}</h3>
-            <p className="module-description">{description}</p>
-
-            <ul className="module-features">
-                {features.map((feat, fi) => (
-                    <motion.li
-                        key={fi}
-                        animate={hovered ? { x: 6 } : { x: 0 }}
-                        transition={{ duration: 0.2, delay: fi * 0.04 }}
-                    >
-                        {feat}
-                    </motion.li>
-                ))}
-            </ul>
-
-            <motion.button
-                className="btn btn-secondary module-btn"
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.97 }}
-            >
-                Explore →
-            </motion.button>
-        </motion.div>
-    );
-};
-
+/* ─── Feature Grid ────────────────────────────────────── */
 const FEATURES = [
     { icon: '⚡', title: 'Lightning Fast',       desc: 'Optimized performance ensures instant response times and smooth navigation.' },
     { icon: '🔒', title: 'Secure & Compliant',   desc: 'Role-based access control, encrypted data, and compliance for student privacy.' },
     { icon: '🔔', title: 'Real-time Updates',    desc: 'Instant notifications for bookings, approvals, and schedule changes.' },
     { icon: '👥', title: 'Multi-role Support',   desc: 'Tailored dashboards for students, faculty, admins, and office staff.' },
     { icon: '📊', title: 'Analytics & Reports',  desc: 'Comprehensive insights into event participation and venue utilization.' },
-    { icon: '✓',  title: 'Integrated Workflows', desc: 'Seamless synchronization between club events, schedules, and venues.' },
+    { icon: '✔️',  title: 'Integrated Workflows', desc: 'Seamless synchronization between club events, schedules, and venues.' },
 ];
 
-// Each card starts scattered in a different direction, then converges to its grid slot.
-// The directions cycle so the 6-card grid fans out from all sides.
-const SCATTER_ORIGINS = [
-    { x: -160, y: -120, rotate: -18 }, // top-left
-    { x:    0, y: -180, rotate:   8 }, // top-center
-    { x:  160, y: -120, rotate:  16 }, // top-right
-    { x: -160, y:  120, rotate:  14 }, // bottom-left
-    { x:    0, y:  180, rotate:  -8 }, // bottom-center
-    { x:  160, y:  120, rotate: -16 }, // bottom-right
+const SCATTER = [
+    { x: -110, y: -75, rotate: -11 }, { x: 0, y: -130, rotate: 6 },
+    { x: 110,  y: -75, rotate: 11  }, { x: -110, y: 75, rotate: 10 },
+    { x: 0,    y: 130, rotate: -6  }, { x: 110,  y: 75, rotate: -11 },
 ];
 
-const FeaturesGrid = () => {
+const FeatureGrid = () => {
     const ref = useRef(null);
-    // once: false → animation fires every time the section enters the viewport
-    const isInView = useInView(ref, { once: false, margin: '-80px' });
-
+    const inView = useInView(ref, { once: false, margin: '-60px' });
     return (
-        <div ref={ref} className="features-grid">
-            {FEATURES.map((f, i) => {
-                const origin = SCATTER_ORIGINS[i];
-                return (
-                    <motion.div
-                        key={i}
-                        className="feature-item"
-                        // Reset to scattered when NOT in view so animation replays
-                        initial={{ opacity: 0, x: origin.x, y: origin.y, rotate: origin.rotate, scale: 0.75 }}
-                        animate={
-                            isInView
-                                ? { opacity: 1, x: 0, y: 0, rotate: 0, scale: 1 }
-                                : { opacity: 0, x: origin.x, y: origin.y, rotate: origin.rotate, scale: 0.75 }
-                        }
-                        transition={{
-                            duration: 0.65,
-                            delay: i * 0.07,          // slight stagger so they don't all land at once
-                            ease: [0.22, 1, 0.36, 1], // snappy overshoot feel
-                        }}
-                        whileHover={{
-                            y: -10,
-                            scale: 1.03,
-                            boxShadow: '0 20px 40px rgba(0,0,0,0.12)',
-                            borderColor: 'var(--primary)',
-                            transition: { duration: 0.25 },
-                        }}
-                    >
-                        <div className="feature-icon">{f.icon}</div>
-                        <h3>{f.title}</h3>
-                        <p>{f.desc}</p>
-                    </motion.div>
-                );
-            })}
+        <div ref={ref} className="feat-grid">
+            {FEATURES.map((f, i) => (
+                <motion.div
+                    key={i} className="feat-item"
+                    initial={{ opacity: 0, ...SCATTER[i], scale: 0.85 }}
+                    animate={inView
+                        ? { opacity: 1, x: 0, y: 0, rotate: 0, scale: 1 }
+                        : { opacity: 0, ...SCATTER[i], scale: 0.85 }
+                    }
+                    transition={{ duration: 0.5, delay: i * 0.06, ease: [0.22, 1, 0.36, 1] }}
+                >
+                    <span className="feat-icon">{f.icon}</span>
+                    <h3>{f.title}</h3>
+                    <p>{f.desc}</p>
+                </motion.div>
+            ))}
         </div>
     );
 };
 
-const Home = () => {
+/* ─── Hero Visual — photo stat cards ─────────────────── */
+const HeroVisual = ({ stats }) => {
+    const ref = useRef(null);
+    const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end start'] });
+    const y = useTransform(scrollYProgress, [0, 1], ['0%', '14%']);
+
+    const items = [
+        { label: 'Active Users',   value: stats.totalUsers,  sub: 'STUDENTS & FACULTY', icon: '👥', img: '/p1.jpeg' },
+        { label: 'Total Events',   value: stats.totalEvents, sub: 'ACROSS ALL CLUBS',   icon: '📅', img: '/p2.jpeg' },
+        { label: 'Venues Managed', value: stats.totalVenues, sub: 'REAL-TIME BOOKING',  icon: '📍', img: '/p3.jpeg' },
+    ];
+
+    return (
+        <motion.div ref={ref} className="hero-visual" style={{ y }}>
+            <div className="stat-cards-cluster">
+                {items.map((s, i) => (
+                    <motion.div
+                        key={i}
+                        className={`stat-pill stat-pill--${i}`}
+                        style={{
+                            backgroundImage: `url(${s.img})`,
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center',
+                        }}
+                        initial={{ opacity: 0, x: 40, scale: 0.95 }}
+                        animate={{ opacity: 1, x: 0, scale: 1 }}
+                        transition={{ delay: 0.38 + i * 0.14, duration: 0.62, ease: [0.16, 1, 0.3, 1] }}
+                    >
+                        <div className="stat-pill__overlay" />
+                        <div className="stat-pill__content">
+                            <div className="stat-pill__icon">{s.icon}</div>
+                            <div className="stat-pill__label">{s.label}</div>
+                            <div className="stat-pill__divider" />
+                            <div className="stat-pill__num"><AnimatedCounter value={s.value} /></div>
+                            <div className="stat-pill__divider" />
+                            <div className="stat-pill__sub">{s.sub}</div>
+                        </div>
+                    </motion.div>
+                ))}
+            </div>
+        </motion.div>
+    );
+};
+
+/* ─── Home ────────────────────────────────────────────── */
+export default function Home() {
     const { user, isAuthenticated, logout } = useAuth();
-    const { theme, toggleTheme } = useTheme();
     const navigate = useNavigate();
     const [stats, setStats] = useState({ totalUsers: 0, totalEvents: 0, totalVenues: 0 });
-    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [menuOpen, setMenuOpen] = useState(false);
     const [scrolled, setScrolled] = useState(false);
-    const [isDark, setIsDark] = useState(false);
 
-    // Watch the DOM directly — works regardless of how ThemeContext names its values
-    useEffect(() => {
-        const checkDark = () => {
-            const html = document.documentElement;
-            const body = document.body;
-            const dark =
-                html.getAttribute('data-theme') === 'dark' ||
-                html.classList.contains('dark') ||
-                html.classList.contains('dark-mode') ||
-                body.getAttribute('data-theme') === 'dark' ||
-                body.classList.contains('dark') ||
-                body.classList.contains('dark-mode');
-            setIsDark(dark);
-        };
-        checkDark();
-        const observer = new MutationObserver(checkDark);
-        observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme'] });
-        observer.observe(document.body, { attributes: true, attributeFilter: ['class', 'data-theme'] });
-        return () => observer.disconnect();
-    }, []);
-
-    const fadeInUp = {
-        hidden: { opacity: 0, y: 48 },
-        visible: { opacity: 1, y: 0, transition: { duration: 0.75, ease: [0.16, 1, 0.3, 1] } }
-    };
-
-    const staggerContainer = {
-        hidden: { opacity: 0 },
-        visible: { opacity: 1, transition: { staggerChildren: 0.14, delayChildren: 0.1 } }
-    };
-
-    const cardVariants = {
-        hidden: { opacity: 0, y: 36, scale: 0.96 },
-        visible: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] } }
-    };
+    useEffect(() => { statsAPI.getStats().then(setStats).catch(() => {}); }, []);
 
     useEffect(() => {
-        // Lightweight native smooth scroll — avoids Lenis + Framer Motion rAF conflicts
-        document.documentElement.style.scrollBehavior = 'smooth';
-        return () => {
-            document.documentElement.style.scrollBehavior = '';
-        };
+        const fn = () => setScrolled(window.scrollY > 50);
+        window.addEventListener('scroll', fn, { passive: true });
+        return () => window.removeEventListener('scroll', fn);
     }, []);
-
-    useEffect(() => {
-        const fetchStats = async () => {
-            const data = await statsAPI.getStats();
-            setStats(data);
-        };
-        fetchStats();
-    }, []);
-
-    useEffect(() => {
-        const handleScroll = () => setScrolled(window.scrollY > 50);
-        window.addEventListener('scroll', handleScroll, { passive: true });
-        return () => window.removeEventListener('scroll', handleScroll);
-    }, []);
-
-    const handleModuleClick = (path) => navigate(path);
 
     const goToDashboard = () => {
         if (user?.role === 'ADMIN') navigate('/admin');
@@ -345,220 +226,224 @@ const Home = () => {
         else navigate('/dashboard');
     };
 
-    const moduleData = [
+    const modules = [
         {
             path: '/clubs',
-            imgSrc: '/clubs.png',
-            imgAlt: 'Clubs',
             title: 'Club Management',
             description: 'Comprehensive club oversight, event creation, and student engagement tools with ML-powered resume screening.',
-            features: ['✓ Event Management', '✓ Student Registration', '✓ Resume Screening', '✓ Faculty Dashboard'],
+            features: ['Event Management', 'Student Registration', 'Resume Screening', 'Faculty Dashboard'],
         },
         {
             path: '/schedule',
-            imgSrc: '/schedule.png',
-            imgAlt: 'Schedule',
             title: 'Schedule Module',
             description: 'Real-time timetable viewing with integrated venue booking and location tracking for seamless coordination.',
-            features: ['✓ Live Timetables', '✓ Location Tracking', '✓ Conflict Detection', '✓ Auto-sync'],
+            features: ['Live Timetables', 'Location Tracking', 'Conflict Detection', 'Auto-sync'],
         },
         {
             path: '/booking',
-            imgSrc: '/venuee.png',
-            imgAlt: 'Venue',
             title: 'Venue Booking',
-            description: 'Classroom and event venue booking system with role-based access and real-time availability updates.',
-            features: ['✓ Real-time Availability', '✓ Role-based Access', '✓ Auto-confirmation', '✓ Calendar Sync'],
+            description: 'Classroom and event venue booking with role-based access and real-time availability across your campus.',
+            features: ['Real-time Availability', 'Role-based Access', 'Auto-confirmation', 'Calendar Sync'],
         },
+    ];
+
+    const marqueeItems = [
+        'Club Management', 'Event Scheduling', 'Venue Booking',
+        'Student Registration', 'Live Timetables', 'Analytics Dashboard',
+        'ML Resume Screening', 'Real-time Updates', 'Faculty Dashboard',
     ];
 
     return (
         <div className="homepage">
-            <FloatingShapes />
 
-            {/* Navigation */}
-            <nav className={`home-nav ${scrolled ? 'scrolled' : ''}`}>
-                <div className="home-nav__container">
-                    <Link to="/" className="home-nav__logo">
-                        <img src="/logoo.png" alt="InfoNest" className="home-nav__logo-img" />
-                        <span><span className="highlight">Info</span>Nest</span>
+            {/* ── Nav ─────────────────────────────────────────── */}
+            <nav className={`hn${scrolled ? ' hn--scrolled' : ''}`}>
+                <div className="hn__inner">
+
+                    {/* Logo */}
+                    <Link to="/" className="hn__logo">
+                        <img src="/logoo.png" alt="InfoNest" className="hn__logo-img" />
+                        Info<em>Nest</em>
                     </Link>
 
-                    <button
-                        className="home-nav__toggle"
-                        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                        aria-label="Toggle menu"
-                    >
-                        {mobileMenuOpen ? '✕' : '☰'}
-                    </button>
+                    {/* Links + actions */}
+                    <div className={`hn__menu${menuOpen ? ' hn__menu--open' : ''}`}>
+                        <a href="#modules-section" className="hn__link" onClick={() => setMenuOpen(false)}>Modules</a>
+                        <a href="#features-section" className="hn__link" onClick={() => setMenuOpen(false)}>Features</a>
+                        <a href="#footer" className="hn__link" onClick={() => setMenuOpen(false)}>Contact</a>
 
-                    <div className={`home-nav__menu ${mobileMenuOpen ? 'open' : ''}`}>
-                        <ul className="home-nav__list">
-                            <li><a href="#modules-section" className="home-nav__link">Try It</a></li>
-                            <li><a href="#features-section" className="home-nav__link">About Us</a></li>
-                            <li><a href="#footer" className="home-nav__link">Contact</a></li>
-                        </ul>
-                        <div className="home-nav__actions">
-                            <motion.button
-                                className="theme-toggle-btn"
-                                onClick={toggleTheme}
-                                title="Toggle theme"
-                                whileHover={{ scale: 1.1 }}
-                                whileTap={{ scale: 0.95 }}
-                            >
-                                {theme === 'dark' ? '☀️' : '🌙'}
-                            </motion.button>
+                        <div className="hn__actions">
                             {isAuthenticated ? (
-                                <div className="home-nav__user">
-                                    <motion.span className="home-nav__avatar" whileHover={{ scale: 1.1 }}>
-                                        {user?.firstName?.charAt(0) || 'U'}
-                                    </motion.span>
-                                    <span className="home-nav__username">{user?.firstName}</span>
-                                    <motion.button className="btn btn-secondary btn-sm" onClick={goToDashboard} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>Dashboard</motion.button>
-                                    <motion.button className="btn btn-danger btn-sm" onClick={logout} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>Logout</motion.button>
-                                </div>
+                                <>
+                                    <motion.div className="hn__avatar" whileHover={{ scale: 1.08 }}>
+                                        {user?.firstName?.charAt(0)?.toUpperCase() || 'U'}
+                                    </motion.div>
+                                    <span className="hn__username">{user?.firstName || ''}</span>
+                                    <button className="btn-pill btn-pill--ghost" onClick={goToDashboard}>
+                                        Dashboard
+                                    </button>
+                                    <button className="btn-pill btn-pill--danger" onClick={logout}>
+                                        Logout
+                                    </button>
+                                </>
                             ) : (
                                 <>
-                                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                                        <Link to="/login" className="btn btn-secondary btn-sm">Sign In</Link>
-                                    </motion.div>
-                                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                                        <Link to="/signup" className="btn btn-primary btn-sm">Get Started</Link>
-                                    </motion.div>
+                                    <Link to="/login" className="btn-pill btn-pill--ghost">Sign In</Link>
+                                    <Link to="/signup" className="btn-pill btn-pill--primary">Get Started</Link>
                                 </>
                             )}
                         </div>
                     </div>
+
+                    <button
+                        className="hn__burger"
+                        onClick={() => setMenuOpen(o => !o)}
+                        aria-label="Toggle menu"
+                    >
+                        <span /><span /><span />
+                    </button>
                 </div>
             </nav>
 
-            {/* Hero Section */}
-            <section id="hero-section" className="hero-section">
-                <div className="hero-container">
-                    <div className="hero-grid">
+            {/* ── Hero ────────────────────────────────────────── */}
+            <section className="hero" id="hero-section">
+                <div className="hero__inner">
+
+                    {/* Left */}
+                    <div className="hero__left">
                         <motion.div
-                            className="hero-content"
-                            initial="hidden"
-                            whileInView="visible"
-                            viewport={{ once: true, margin: "-100px" }}
-                            variants={fadeInUp}
+                            className="hero__eyebrow"
+                            initial={{ opacity: 0, y: 12 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.48 }}
                         >
-                            <h1 className="hero-title">
-                                <TypewriterEffect
-                                    blackText="Streamline Your Campus Management with "
-                                    orangeText="Confidence"
-                                />
-                            </h1>
-                            <motion.p
-                                className="hero-description"
-                                initial={{ opacity: 0 }}
-                                whileInView={{ opacity: 1 }}
-                                viewport={{ once: true }}
-                                transition={{ delay: 0.4, duration: 0.6 }}
-                            >
-                                InfoNest empowers educational institutions with a comprehensive platform for club management,
-                                event scheduling, and venue booking. Built for students, faculty, and administrators to
-                                collaborate seamlessly.
-                            </motion.p>
-                            <motion.div
-                                className="hero-buttons"
-                                initial={{ opacity: 0, y: 16 }}
-                                whileInView={{ opacity: 1, y: 0 }}
-                                viewport={{ once: true }}
-                                transition={{ delay: 0.6, duration: 0.5 }}
-                            >
-                                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                                    <Link to="/signup" className="btn btn-primary btn-lg">Get Started</Link>
-                                </motion.div>
-                                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                                    <Link
-                                        to="/login"
-                                        className="btn btn-secondary btn-lg"
-                                        style={{ color: isDark ? '#ffffff' : '#111827' }}
-                                    >Sign In</Link>
-                                </motion.div>
-                            </motion.div>
+                            <span className="eyebrow-dot" />
+                            Campus Management Platform
+                        </motion.div>
+
+                        <motion.h1
+                            className="hero__headline"
+                            initial={{ opacity: 0, y: 28 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.68, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+                        >
+                            <Typewriter parts={[
+                                { text: 'Streamline Your Campus\nManagement with\n', color: 'var(--h-text)' },
+                                { text: 'Confidence',                                color: 'var(--primary)' },
+                            ]} />
+                        </motion.h1>
+
+                        <motion.p
+                            className="hero__sub"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 0.5, duration: 0.55 }}
+                        >
+                            InfoNest empowers educational institutions with a unified platform
+                            for club management, event scheduling, and venue booking —
+                            built for students, faculty, and admins.
+                        </motion.p>
+
+                        <motion.div
+                            className="hero__btns"
+                            initial={{ opacity: 0, y: 12 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.6, duration: 0.48 }}
+                        >
+                            <Link to="/signup" className="btn-pill btn-pill--primary btn-pill--lg">
+                                Start Free →
+                            </Link>
+                            <a href="#modules-section" className="btn-pill btn-pill--outline btn-pill--lg">
+                                See Modules
+                            </a>
                         </motion.div>
 
                         <motion.div
-                            className="hero-stats"
-                            initial="hidden"
-                            whileInView="visible"
-                            viewport={{ once: true, margin: "-100px" }}
-                            variants={staggerContainer}
+                            className="hero__badges"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 0.74, duration: 0.48 }}
                         >
-                            {[
-                                { icon: '👥', label: 'Active Users', value: stats.totalUsers, sub: 'Students & Faculty' },
-                                { icon: '📅', label: 'Total Events', value: stats.totalEvents, sub: 'Across All Clubs' },
-                                { icon: '📍', label: 'Venues Managed', value: stats.totalVenues, sub: 'Real-time Booking' },
-                            ].map((s, i) => (
-                                <motion.div
-                                    key={i}
-                                    className="stat-card"
-                                    variants={cardVariants}
-                                    whileHover={{ y: -10, boxShadow: "0 20px 40px rgba(0,0,0,0.12)", borderColor: "var(--primary)", transition: { duration: 0.3 } }}
-                                >
-                                    <div className="stat-icon">{s.icon}</div>
-                                    <h3>{s.label}</h3>
-                                    <p className="stat-number"><AnimatedCounter value={s.value} /></p>
-                                    <p className="stat-label">{s.sub}</p>
-                                </motion.div>
-                            ))}
+                            <span className="badge">🎓 University Ready</span>
+                            <span className="badge">🔒 Secure</span>
+                            <span className="badge">⚡ Real-time</span>
                         </motion.div>
+                    </div>
+
+                    {/* Right */}
+                    <div className="hero__right">
+                        <HeroVisual stats={stats} />
                     </div>
                 </div>
             </section>
 
-            {/* Modules Section */}
-            <section id="modules-section" className="modules-section">
-                <div className="section-container">
-                    <FadeUp once className="section-header">
-                        <h2 className="section-title">Comprehensive Platform Modules</h2>
-                        <p className="section-subtitle">Three integrated systems working together to deliver seamless campus management</p>
-                    </FadeUp>
+            {/* ── Marquee ─────────────────────────────────────── */}
+            <div className="marquee-section">
+                <Marquee items={marqueeItems} />
+            </div>
 
-                    <div className="modules-grid">
-                        {moduleData.map((mod, i) => (
-                            <ModuleCard
+            {/* ── Modules ─────────────────────────────────────── */}
+            <section id="modules-section" className="modules-section">
+                <div className="section-wrap">
+                    <motion.div
+                        className="section-head"
+                        initial={{ opacity: 0, y: 22 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true, margin: '-50px' }}
+                        transition={{ duration: 0.52, ease: [0.16, 1, 0.3, 1] }}
+                    >
+                        <span className="section-kicker">Platform Modules</span>
+                        <h2 className="section-title">Everything You Need, In One Place</h2>
+                    </motion.div>
+
+                    <div className="module-cards-grid">
+                        {modules.map((card, i) => (
+                            <FlipCard
                                 key={i}
+                                card={card}
                                 index={i}
-                                onClick={() => handleModuleClick(mod.path)}
-                                imgSrc={mod.imgSrc}
-                                imgAlt={mod.imgAlt}
-                                title={mod.title}
-                                description={mod.description}
-                                features={mod.features}
+                                onNavigate={path => navigate(path)}
                             />
                         ))}
                     </div>
                 </div>
             </section>
 
-            {/* Features Section */}
+            {/* ── Features ────────────────────────────────────── */}
             <section id="features-section" className="features-section">
-                <div className="section-container">
-                    <FadeUp once className="section-header">
-                        <h2 className="section-title">Why Choose InfoNest?</h2>
-                        <p className="section-subtitle">Built with best practices for security, reliability, and user experience</p>
-                    </FadeUp>
+                <div className="section-wrap">
+                    <motion.div
+                        className="section-head"
+                        initial={{ opacity: 0, y: 22 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true, margin: '-50px' }}
+                        transition={{ duration: 0.52, ease: [0.16, 1, 0.3, 1] }}
+                    >
+                        <span className="section-kicker">Why InfoNest</span>
+                        <h2 className="section-title">Built for Modern Institutions</h2>
+                        <p className="section-body">
+                            Best-in-class security, reliability, and user experience crafted for campus life.
+                        </p>
+                    </motion.div>
 
-                    <FeaturesGrid />
+                    <FeatureGrid />
                 </div>
             </section>
 
-            {/* Footer */}
-            <motion.footer
-                id="footer"
-                className="footer"
-                initial={{ opacity: 0 }}
-                whileInView={{ opacity: 1 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5 }}
-            >
-                <p>Made with ❤️ by InfoNest team</p>
-            </motion.footer>
+            {/* ── Footer ──────────────────────────────────────── */}
+            <footer id="footer" className="site-footer">
+                <div className="site-footer__bar">
+                    <div className="site-footer__bar-inner">
+                        <Link to="/" className="site-footer__logo">
+                            Info<span>Nest</span>
+                        </Link>
+                        <p className="site-footer__copy">
+                            © {new Date().getFullYear()} InfoNest. Made with ❤️ for campuses everywhere.
+                        </p>
+                    </div>
+                </div>
+            </footer>
+
         </div>
     );
-};
-
-export default Home;
+}

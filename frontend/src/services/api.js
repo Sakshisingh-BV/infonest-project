@@ -162,6 +162,10 @@ export const venueAPI = {
   // Get my bookings
   getMyBookings: () => api.get('/venues/my-bookings'),
 
+  // Get bookings by date range (for calendar)
+  getBookingsByDateRange: (startDate, endDate) => 
+    api.get('/venues/bookings-by-date', { params: { startDate, endDate } }),
+
   // Cancel a booking
   cancelBooking: (bookingId) => api.put(`/venues/cancel/${bookingId}`),
 

@@ -3,7 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { eventsAPI, studentAPI, clubsAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import BackButton from '../components/BackButton';
+import EventFlipCard from '../components/EventFlipCard';
 import './Events.css';
+import '../components/EventFlipCard.css';
 
 const Events = () => {
     const { user, isAuthenticated } = useAuth();
@@ -142,38 +144,13 @@ const Events = () => {
             <h2 className="section-title">📅 Upcoming Events</h2>
             <div className="events-grid">
                 {events.length > 0 ? (
-                    events.map(event => (
-                        <div key={event.eventId} className="event-card">
-                            <div className="event-header">
-                                <h3>{event.eventName}</h3>
-                                <div className="club-name">{event.clubId}</div>
-                            </div>
-                            <div className="event-body">
-                                <p>{event.description || 'No description available.'}</p>
-                                <div className="event-meta">
-                                    <span>📅 {event.eventDate || 'TBD'}</span>
-                                    <span>⏰ {event.eventTime || 'TBD'}</span>
-                                    <span>📍 {event.venueId || 'TBD'}</span>
-                                </div>
-                                {event.deadline && (
-                                    <div className="event-meta">
-                                        <span>⏳ Deadline: {event.deadline}</span>
-                                    </div>
-                                )}
-                            </div>
-                            <div className="event-footer">
-                                {isRegistered(event.eventId) ? (
-                                    <span className="status-badge status-applied">✓ Registered</span>
-                                ) : (
-                                    <button
-                                        className="btn btn-primary"
-                                        onClick={() => handleRegister(event)}
-                                    >
-                                        Register Now →
-                                    </button>
-                                )}
-                            </div>
-                        </div>
+                    events.map((event, index) => (
+                        <EventFlipCard 
+                            key={event.eventId} 
+                            event={event} 
+                            index={index}
+                            onAction={(evt) => handleRegister(evt)}
+                        />
                     ))
                 ) : (
                     <div className="event-card">

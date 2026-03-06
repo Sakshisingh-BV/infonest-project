@@ -289,4 +289,20 @@ public class VenueController {
         long count = venueRepository.findByIsActiveTrue().size();
         return ResponseEntity.ok(Map.of("totalVenues", count));
     }
+
+    // 10. GET ALL BOOKINGS BY DATE RANGE (for calendar display)
+    @GetMapping("/bookings-by-date")
+    public ResponseEntity<?> getBookingsByDateRange(
+            @RequestParam String startDate,
+            @RequestParam String endDate) {
+        LocalDate start = LocalDate.parse(startDate);
+        LocalDate end = LocalDate.parse(endDate);
+        
+        List<VenueBooking> bookings = venueBookingRepository.findAll().stream()
+                .filter(b -> !b.getBookingDate().isBefore(start) && !b.getBookingDate().isAfter(end))
+                .filter(b -> !"CANCELLED".equals(b.getStatus()))
+                .collect(Collectors.toList());
+        
+        return ResponseEntity.ok(bookings);
+    }
 }

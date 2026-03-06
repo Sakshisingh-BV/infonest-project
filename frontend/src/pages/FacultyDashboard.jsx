@@ -3,7 +3,10 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { facultyAPI, studentAPI, eventsAPI, venueAPI } from '../services/api';
 import BackButton from '../components/BackButton';
+import MyBookingsCalendar from '../components/MyBookingsCalendar';
+import EventFlipCard from '../components/EventFlipCard';
 import './FacultyDashboard.css';
+import '../components/EventFlipCard.css';
 
 const FacultyDashboard = () => {
     const { user, logout } = useAuth();
@@ -254,27 +257,23 @@ const FacultyDashboard = () => {
                         <button className="btn btn-secondary" onClick={() => { resetForm(); setShowUpdateModal(true); }}>✏️ Update Event</button>
                         <button className="btn btn-secondary" onClick={fetchData}>🔄 Refresh</button>
                     </div>
-                    <table>
-                        <thead>
-                            <tr><th>ID</th><th>Event Name</th><th>Date</th><th>Deadline</th><th>Reg Link</th><th>Actions</th></tr>
-                        </thead>
-                        <tbody>
-                            {events.length > 0 ? events.map(event => (
-                                <tr key={event.eventId}>
-                                    <td>{event.eventId}</td>
-                                    <td>{event.eventName}</td>
-                                    <td>{event.eventDate}</td>
-                                    <td>{event.deadline || '-'}</td>
-                                    <td>{event.registrationFormLink ? '✓' : 'Internal'}</td>
-                                    <td>
-                                        <button className="btn btn-danger" onClick={() => handleDeleteEvent(event.eventId)}>Delete</button>
-                                    </td>
-                                </tr>
-                            )) : (
-                                <tr><td colSpan="6">No events. Add one!</td></tr>
-                            )}
-                        </tbody>
-                    </table>
+                    
+                    {/* Animated Event Cards with Flip Animation */}
+                    <div className="event-cards-grid">
+                        {events.length > 0 ? events.map((event, index) => (
+                            <EventFlipCard 
+                                key={event.eventId} 
+                                event={event} 
+                                index={index}
+                                onAction={(evt) => handleDeleteEvent(evt.eventId)}
+                                showDelete={true}
+                            />
+                        )) : (
+                            <p style={{ padding: '2rem', color: 'var(--muted)', textAlign: 'center', gridColumn: '1 / -1' }}>
+                                No events. Add one!
+                            </p>
+                        )}
+                    </div>
                 </div>
             )}
 
@@ -350,11 +349,17 @@ const FacultyDashboard = () => {
             {/* My Bookings Tab */}
             {activeTab === 'bookings' && (
                 <div className="card">
-                    <h2>📋 My Venue Bookings</h2>
+                    <h2>📅 My Venue Bookings</h2>
                     <div className="action-bar">
                         <Link to="/booking" className="btn btn-primary">➕ New Booking</Link>
                         <button className="btn btn-secondary" onClick={fetchData}>🔄 Refresh</button>
                     </div>
+                    
+                    {/* Calendar View */}
+                    <MyBookingsCalendar />
+                    
+                    {/* Bookings Table */}
+                    <h3 style={{ marginTop: '1.5rem', marginBottom: '1rem' }}>All Bookings</h3>
                     <table>
                         <thead>
                             <tr><th>Venue</th><th>Date</th><th>Time</th><th>Purpose</th><th>Status</th><th>Actions</th></tr>

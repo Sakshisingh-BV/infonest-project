@@ -1,9 +1,14 @@
+
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { adminAPI, venueAPI } from '../services/api';
 import BackButton from '../components/BackButton';
+import MyBookingsCalendar from '../components/MyBookingsCalendar';
+import ExpandableCardList from '../components/ExpandableCard';
+import EventFlipCard from '../components/EventFlipCard';
 import './AdminDashboard.css';
+import '../components/EventFlipCard.css';
 
 const AdminDashboard = () => {
     const { user, logout } = useAuth();
@@ -206,24 +211,26 @@ const AdminDashboard = () => {
                         <button className="btn btn-primary" onClick={() => openModal('club')}>➕ Add Club</button>
                         <button className="btn btn-secondary" onClick={fetchData}>🔄 Refresh</button>
                     </div>
-                    <table>
-                        <thead>
-                            <tr><th>Club ID</th><th>Name</th><th>Description</th><th>Actions</th></tr>
-                        </thead>
-                        <tbody>
-                            {clubs.map(club => (
-                                <tr key={club.clubId}>
-                                    <td>{club.clubId}</td>
-                                    <td>{club.clubName}</td>
-                                    <td>{club.description || '-'}</td>
-                                    <td>
-                                        <button className="btn btn-secondary" onClick={() => openModal('club', club)}>Edit</button>
-                                        <button className="btn btn-danger" onClick={() => handleDeleteClub(club.clubId)}>Delete</button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                    
+                    {/* Animated Clubs List */}
+                    <ExpandableCardList 
+                        title={null}
+                        cards={clubs.map(club => ({
+                            clubId: club.clubId,
+                            clubName: club.clubName,
+                            description: club.description || 'No description available',
+                            icon: '🏢',
+                            content: () => (
+                                <div>
+                                    <p><strong>Club ID:</strong> {club.clubId}</p>
+                                    <p><strong>Description:</strong> {club.description || 'No description'}</p>
+                                    <p><strong>Status:</strong> Active</p>
+                                </div>
+                            ),
+                            ctaText: 'Manage',
+                            ctaLink: '#'
+                        }))}
+                    />
                 </div>
             )}
 
@@ -235,27 +242,27 @@ const AdminDashboard = () => {
                         <button className="btn btn-primary" onClick={() => openModal('event')}>➕ Add Event</button>
                         <button className="btn btn-secondary" onClick={fetchData}>🔄 Refresh</button>
                     </div>
-                    <table>
-                        <thead>
-                            <tr><th>ID</th><th>Event</th><th>Club</th><th>Date</th><th>Hidden</th><th>Actions</th></tr>
-                        </thead>
-                        <tbody>
-                            {events.map(event => (
-                                <tr key={event.eventId} style={{ opacity: event.hidden ? 0.5 : 1 }}>
-                                    <td>{event.eventId}</td>
-                                    <td>{event.eventName}</td>
-                                    <td>{event.clubId}</td>
-                                    <td>{event.eventDate}</td>
-                                    <td>{event.hidden ? '🙈 Yes' : '👁️ No'}</td>
-                                    <td>
-                                        <button className="btn btn-secondary" onClick={() => handleToggleVisibility(event.eventId)}>Toggle</button>
-                                        <button className="btn btn-secondary" onClick={() => openModal('event', event)}>Edit</button>
-                                        <button className="btn btn-danger" onClick={() => handleDeleteEvent(event.eventId)}>Delete</button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                    
+                    {/* Animated Event Cards with Flip Animation */}
+                    <div className="event-cards-grid">
+                        {events.map((event, index) => (
+                            <EventFlipCard 
+                                key={event.eventId} 
+                                event={event} 
+                                index={index}
+                                onAction={(evt) => {
+                                    // Handle action - could open modal or navigate
+                                    console.log('View event:', evt);
+                                }}
+                            />
+                        ))}
+                    </div>
+                    
+                    {events.length === 0 && (
+                        <p className="text-center text-muted" style={{ padding: '2rem', color: 'var(--muted)' }}>
+                            No events found. Add one to get started!
+                        </p>
+                    )}
                 </div>
             )}
 
@@ -267,34 +274,43 @@ const AdminDashboard = () => {
                         <button className="btn btn-primary" onClick={() => openModal('assign')}>➕ Assign Faculty</button>
                         <button className="btn btn-secondary" onClick={fetchData}>🔄 Refresh</button>
                     </div>
-                    <table>
-                        <thead>
-                            <tr><th>Name</th><th>Email</th><th>Club</th><th>Actions</th></tr>
-                        </thead>
-                        <tbody>
-                            {faculty.map(f => (
-                                <tr key={f.userId}>
-                                    <td>{f.firstName} {f.lastName}</td>
-                                    <td>{f.email}</td>
-                                    <td>{f.clubId || <span style={{ color: 'var(--muted)' }}>Not assigned</span>}</td>
-                                    <td>
-                                        {f.clubId && <button className="btn btn-danger" onClick={() => handleRemoveFaculty(f.email)}>Remove</button>}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                    
+                    {/* Animated Faculty List */}
+                    <ExpandableCardList 
+                        title={null}
+                        cards={faculty.map(f => ({
+                            id: f.userId,
+                            clubName: `${f.firstName || ''} ${f.lastName || ''}`.trim() || f.email,
+                            description: f.clubId ? `Assigned to: ${f.clubId}` : 'Not assigned to any club',
+                            icon: '👨‍🏫',
+                            content: () => (
+                                <div>
+                                    <p><strong>Email:</strong> {f.email}</p>
+                                    <p><strong>Assigned Club:</strong> {f.clubId || 'None'}</p>
+                                    <p><strong>User ID:</strong> {f.userId}</p>
+                                </div>
+                            ),
+                            ctaText: f.clubId ? 'Remove' : 'Assign',
+                            ctaLink: '#'
+                        }))}
+                    />
                 </div>
             )}
 
             {/* My Bookings Tab */}
             {activeTab === 'bookings' && (
                 <div className="card">
-                    <h2>📋 My Venue Bookings</h2>
+                    <h2>📅 My Venue Bookings</h2>
                     <div className="action-bar">
                         <Link to="/booking" className="btn btn-primary">➕ New Booking</Link>
                         <button className="btn btn-secondary" onClick={fetchData}>🔄 Refresh</button>
                     </div>
+                    
+                    {/* Calendar View */}
+                    <MyBookingsCalendar />
+                    
+                    {/* Bookings Table */}
+                    <h3 style={{ marginTop: '1.5rem', marginBottom: '1rem' }}>All Bookings</h3>
                     <table>
                         <thead>
                             <tr><th>Venue</th><th>Date</th><th>Time</th><th>Purpose</th><th>Status</th><th>Actions</th></tr>

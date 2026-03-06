@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { venueAPI } from '../services/api';
 import BackButton from '../components/BackButton';
+import MyBookingsCalendar from '../components/MyBookingsCalendar';
 import './Booking.css';
 
 const Booking = () => {
@@ -140,6 +141,13 @@ const Booking = () => {
                         </div>
                     ) : (
                         <>
+                            {/* Calendar showing existing bookings */}
+                            <div className="card" style={{ marginBottom: '1.5rem' }}>
+                                <h3 style={{ marginBottom: '1rem' }}>📅 Venue Booking Calendar</h3>
+                                <p style={{ color: 'var(--muted)', marginBottom: '1rem' }}>View existing venue bookings below</p>
+                                <MyBookingsCalendar />
+                            </div>
+
                             <div className="booking-form card">
                                 <h3>Book a Venue</h3>
                                 <p className="form-subtitle">Fill in the details to find available venues</p>

@@ -3,7 +3,10 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { venueAPI } from '../services/api';
 import BackButton from '../components/BackButton';
+import MyBookingsCalendar from '../components/MyBookingsCalendar';
+import EventFlipCard from '../components/EventFlipCard';
 import './OfficeDashboard.css';
+import '../components/EventFlipCard.css';
 
 const OfficeDashboard = () => {
     const { user, logout } = useAuth();
@@ -124,11 +127,17 @@ const OfficeDashboard = () => {
             {/* My Bookings Tab */}
             {activeTab === 'bookings' && (
                 <div className="card">
-                    <h2>📋 My Venue Bookings</h2>
+                    <h2>📅 My Venue Bookings</h2>
                     <div className="action-bar">
                         <Link to="/booking" className="btn btn-primary">➕ New Booking</Link>
                         <button className="btn btn-secondary" onClick={fetchData}>🔄 Refresh</button>
                     </div>
+                    
+                    {/* Calendar View */}
+                    <MyBookingsCalendar />
+                    
+                    {/* Bookings Table */}
+                    <h3 style={{ marginTop: '1.5rem', marginBottom: '1rem' }}>All Bookings</h3>
                     <table>
                         <thead>
                             <tr><th>Venue</th><th>Date</th><th>Time</th><th>Purpose</th><th>Status</th><th>Actions</th></tr>
@@ -163,27 +172,28 @@ const OfficeDashboard = () => {
                         <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>➕ Add Venue</button>
                         <button className="btn btn-secondary" onClick={fetchData}>🔄 Refresh</button>
                     </div>
-                    <table>
-                        <thead>
-                            <tr><th>ID</th><th>Name</th><th>Type</th><th>Capacity</th><th>Location</th><th>Actions</th></tr>
-                        </thead>
-                        <tbody>
-                            {venues.length > 0 ? venues.map(v => (
-                                <tr key={v.venueId}>
-                                    <td>{v.venueId}</td>
-                                    <td>{v.name}</td>
-                                    <td>{v.type}</td>
-                                    <td>{v.capacity}</td>
-                                    <td>{v.location || '-'}</td>
-                                    <td>
-                                        <button className="btn btn-danger" onClick={() => handleDeleteVenue(v.venueId)}>Delete</button>
-                                    </td>
-                                </tr>
-                            )) : (
-                                <tr><td colSpan="6">No venues found. Add your first venue!</td></tr>
-                            )}
-                        </tbody>
-                    </table>
+                    
+                    {/* Animated Venue Cards with Flip Animation */}
+                    <div className="event-cards-grid">
+                        {venues.length > 0 ? venues.map((venue, index) => (
+                            <EventFlipCard 
+                                key={venue.venueId} 
+                                event={{
+                                    ...venue,
+                                    eventName: venue.name,
+                                    eventDate: venue.type,
+                                    description: `Capacity: ${venue.capacity} | Location: ${venue.location || 'N/A'}`
+                                }} 
+                                index={index}
+                                onAction={(v) => handleDeleteVenue(v.venueId)}
+                                showDelete={true}
+                            />
+                        )) : (
+                            <p style={{ padding: '2rem', color: 'var(--muted)', textAlign: 'center', gridColumn: '1 / -1' }}>
+                                No venues found. Add your first venue!
+                            </p>
+                        )}
+                    </div>
                 </div>
             )}
 

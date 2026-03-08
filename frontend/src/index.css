@@ -1,45 +1,50 @@
+@import url('./GlobalTheme.css');
 @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
 
 :root {
-  --background: hsl(0 0% 96%);
-  --foreground: hsl(0 0% 9%);
-  --card: hsl(0 0% 98%);
-  --card-foreground: hsl(0 0% 9%);
-  --primary: hsl(20 90% 48%);
-  --primary-foreground: hsl(33 100% 96%);
-  --secondary: hsl(0 0% 32%);
-  --secondary-foreground: hsl(0 0% 98%);
-  --muted: hsl(0 0% 63%);
-  --muted-foreground: hsl(0 0% 9%);
-  --border: hsl(0 0% 83%);
-  --input: hsl(0 0% 83%);
-  --ring: hsl(20 90% 48%);
-  --destructive: hsl(0 72% 50%);
-  --success: hsl(142 76% 36%);
-  --warning: hsl(45 93% 47%);
+  /* Legacy variables - kept for backward compatibility */
+  --background: #f5f7fc;
+  --foreground: #111827;
+  --card: #ffffff;
+  --card-foreground: #111827;
+  --primary: #2563eb;
+  --primary-foreground: #ffffff;
+  --secondary: #0ea5e9;
+  --secondary-foreground: #ffffff;
+  --muted: #9ca3af;
+  --muted-foreground: #111827;
+  --border: rgba(37, 99, 235, 0.1);
+  --input: #f8fafc;
+  --ring: #2563eb;
+  --destructive: #ef4444;
+  --success: #22c55e;
+  --warning: #f59e0b;
   --radius: 0.75rem;
-  --shadow-md: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 2px 4px -1px hsl(0 0% 0% / 0.1);
-  --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 4px 6px -1px hsl(0 0% 0% / 0.1);
-  --accent: hsl(47 100% 96%);
-  --accent-foreground: hsl(37 92% 50%);
+  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+  --accent: #2563eb;
+  --accent-foreground: #ffffff;
 }
 
 body.dark {
-  --background: hsl(0 0% 9%);
-  --foreground: hsl(0 0% 98%);
-  --card: hsl(0 0% 14%);
-  --card-foreground: hsl(0 0% 98%);
-  --primary: hsl(27 95% 60%);
-  --primary-foreground: hsl(12 81% 14%);
-  --secondary: hsl(0 0% 45%);
-  --secondary-foreground: hsl(0 0% 98%);
-  --muted: hsl(0 0% 45%);
-  --muted-foreground: hsl(0 0% 98%);
-  --border: hsl(0 0% 32%);
-  --input: hsl(0 0% 32%);
-  --ring: hsl(27 95% 60%);
-  --accent: hsl(20 91% 14%);
-  --accent-foreground: hsl(43 96% 56%);
+  --background: #0f172a;
+  --foreground: #f8fafc;
+  --card: #1e293b;
+  --card-foreground: #f8fafc;
+  --primary: #3b82f6;
+  --primary-foreground: #0f172a;
+  --secondary: #06b6d4;
+  --secondary-foreground: #f8fafc;
+  --muted: #64748b;
+  --muted-foreground: #f8fafc;
+  --border: rgba(59, 130, 246, 0.2);
+  --input: #1e293b;
+  --ring: #3b82f6;
+  --destructive: #f87171;
+  --success: #4ade80;
+  --warning: #fbbf24;
+  --accent: #3b82f6;
+  --accent-foreground: #0f172a;
 }
 
 * {

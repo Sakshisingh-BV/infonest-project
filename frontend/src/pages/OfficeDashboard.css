@@ -1,6 +1,10 @@
+@import url('../GlobalTheme.css');
+
 .office-dashboard {
     max-width: 1200px;
     margin: 0 auto;
+    padding: 2rem 1.5rem;
+    animation: slideUp 0.5s ease;
 }
 
 .office-dashboard .dashboard-header {
@@ -19,17 +23,20 @@
 }
 
 .office-dashboard .dashboard-header h1 {
-    font-size: 1.5rem;
-    color: var(--primary);
+    font-size: 1.75rem;
+    color: var(--text-heading);
+    font-weight: 800;
+    letter-spacing: -0.02em;
 }
 
 .role-badge {
     background: var(--primary);
-    color: var(--primary-foreground);
+    color: #ffffff;
     padding: 0.25rem 0.75rem;
     border-radius: 1rem;
     font-size: 0.75rem;
     font-weight: 600;
+    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
 }
 
 .office-dashboard .header-actions {
@@ -46,11 +53,19 @@
 }
 
 .office-dashboard .stat-card {
-    background: var(--card);
-    border: 1px solid var(--border);
+    background: var(--surface);
+    border: 1px solid var(--border-light);
     border-radius: var(--radius);
     padding: 1.5rem;
     text-align: center;
+    transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+    box-shadow: var(--shadow-sm);
+}
+
+.office-dashboard .stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--primary-tint-lg);
 }
 
 .office-dashboard .stat-num {
@@ -61,7 +76,7 @@
 }
 
 .office-dashboard .stat-label {
-    color: var(--muted);
+    color: var(--text-muted);
     font-size: 0.875rem;
 }
 
@@ -74,24 +89,27 @@
 
 .office-dashboard .tab-btn {
     padding: 0.75rem 1.25rem;
-    border: 1px solid var(--border);
+    border: 1px solid var(--border-light);
     border-radius: var(--radius);
-    background: var(--card);
-    color: var(--foreground);
+    background: var(--surface);
+    color: var(--text-body);
     cursor: pointer;
-    font-weight: 500;
-    transition: 0.2s;
+    font-weight: 600;
     font-family: inherit;
+    transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 .office-dashboard .tab-btn.active {
     background: var(--primary);
-    color: var(--primary-foreground);
+    color: #ffffff;
     border-color: var(--primary);
+    box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
 }
 
 .office-dashboard .tab-btn:hover:not(.active) {
     border-color: var(--primary);
+    color: var(--primary);
+    background: var(--primary-soft);
 }
 
 .office-dashboard .action-bar {

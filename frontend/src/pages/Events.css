@@ -1,6 +1,10 @@
+@import url('../GlobalTheme.css');
+
 .events-page {
     max-width: 1200px;
     margin: 0 auto;
+    padding: 2rem 1.5rem;
+    animation: slideUp 0.5s ease;
 }
 
 .page-header {
@@ -13,8 +17,10 @@
 }
 
 .page-header h1 {
-    font-size: 1.5rem;
-    color: var(--primary);
+    font-size: 1.75rem;
+    color: var(--text-heading);
+    font-weight: 800;
+    letter-spacing: -0.02em;
 }
 
 .header-actions {
@@ -25,16 +31,20 @@
 
 .user-info {
     font-size: 0.875rem;
-    color: var(--muted);
+    color: var(--text-muted);
 }
 
 .section-title {
-    font-size: 1.25rem;
+    font-size: 1.375rem;
     margin-bottom: 1rem;
-    color: var(--primary);
+    color: var(--text-heading);
+    font-weight: 800;
+    letter-spacing: -0.02em;
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    border-bottom: 2px solid var(--primary-soft);
+    padding-bottom: 0.75rem;
 }
 
 /* Clubs Grid */
@@ -46,8 +56,8 @@
 }
 
 .club-card {
-    background: var(--card);
-    border: 1px solid var(--border);
+    background: var(--surface);
+    border: 1px solid var(--border-light);
     border-radius: var(--radius);
     padding: 1.25rem;
     cursor: pointer;

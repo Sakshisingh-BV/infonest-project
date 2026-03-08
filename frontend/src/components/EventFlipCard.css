@@ -1,3 +1,5 @@
+@import url('../GlobalTheme.css');
+
 /* ==================== Event Flip Card Styles ==================== */
 .event-flip-card {
   background-color: transparent;
@@ -13,7 +15,7 @@
   width: 100%;
   height: 100%;
   text-align: center;
-  transition: transform 0.6s;
+  transition: transform 0.6s cubic-bezier(0.23, 1, 0.32, 1);
   transform-style: preserve-3d;
 }
 
@@ -28,18 +30,24 @@
   height: 100%;
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
+  box-shadow: var(--shadow-md);
 }
 
 /* Front Side */
 .event-flip-card__front {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
   color: white;
   display: flex;
   flex-direction: column;
-  padding: 1.25rem;
-  box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+  padding: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+}
+
+.event-flip-card:hover .event-flip-card__front {
+  box-shadow: 0 12px 32px rgba(37, 99, 235, 0.3);
 }
 
 .event-flip-card__front-header {
@@ -115,28 +123,29 @@
 
 /* Back Side */
 .event-flip-card__back {
-  background: white;
-  color: var(--foreground);
+  background: var(--surface);
+  color: var(--text-heading);
   transform: rotateY(180deg);
   display: flex;
   flex-direction: column;
-  padding: 1.25rem;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-  border: 1px solid var(--border);
+  padding: 1.5rem;
+  border: 1px solid var(--border-light);
 }
 
 .event-flip-card__back-title {
-  font-size: 1rem;
+  font-size: 1.125rem;
   font-weight: 700;
   margin: 0 0 1rem 0;
-  color: var(--foreground);
+  color: var(--text-heading);
+  letter-spacing: -0.01em;
 }
 
 .event-flip-card__back-details {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  margin-bottom: 0.75rem;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  text-align: left;
 }
 
 .detail-row {

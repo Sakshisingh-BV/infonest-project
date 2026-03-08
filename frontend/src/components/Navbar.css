@@ -1,10 +1,14 @@
+@import url('../GlobalTheme.css');
+
 .header {
-  background: var(--card);
-  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border-light);
   padding: 1rem 1.5rem;
   position: sticky;
   top: 0;
   z-index: 100;
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(10px);
 }
 
 .header-container {
@@ -23,6 +27,11 @@
   gap: 0.75rem;
   text-decoration: none;
   margin-top: 0.25rem;
+  transition: all 0.3s ease;
+}
+
+.logo:hover {
+  transform: scale(1.05);
 }
 
 .logo-image {
@@ -32,8 +41,9 @@
 
 .logo-text {
   font-size: 1.75rem;
-  font-weight: 700;
+  font-weight: 900;
   color: var(--primary);
+  letter-spacing: -0.02em;
 }
 
 .nav-links {
@@ -43,11 +53,12 @@
 
 .nav-link {
   padding: 0.5rem 1rem;
-  color: var(--foreground);
+  color: var(--text-body);
   text-decoration: none;
   border-radius: var(--radius);
   font-size: 0.875rem;
-  transition: background 0.2s;
+  font-weight: 600;
+  transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 .nav-link:hover {

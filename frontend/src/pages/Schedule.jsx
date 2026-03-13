@@ -10,9 +10,15 @@ const Schedule = () => {
     const navigate = useNavigate();
 
     // 1. State Management
+    
+    const [selectedTeacher, setSelectedTeacher] = useState(null);
+    const [isUpdateMode, setIsUpdateMode] = useState(false);
+    const [uploadFile, setUploadFile] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [showSchedule, setShowSchedule] = useState(false);
     const [scheduleData, setScheduleData] = useState(null);
+    const [teacherResults, setTeacherResults] = useState([]);
+    const [isManagementMode, setIsManagementMode] = useState(user?.role === 'OFFICE');
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState({ type: '', text: '' });
     
@@ -96,6 +102,46 @@ const Schedule = () => {
         }
     };
 
+    // Search for teachers (for the dropdown/list)
+    const handleManageSearch = async () => {
+        try {
+            const response = await scheduleAPI.searchTeachers(searchQuery);
+            setTeacherResults(response.data); // This will be the list of User objects (Firstname, Lastname, Email)
+        } catch (err) {
+            alert("No such user found.");
+            setTeacherResults([]);
+        }
+    };
+
+    // Handle the actual File Upload
+    const handleFileUpload = async () => {
+        if (!uploadFile) return alert("Please select an Excel file first.");
+        try {
+            const response = await scheduleAPI.uploadExcel(uploadFile, isUpdateMode);
+            alert(response.data.message);
+            setUploadFile(null);
+            setSelectedTeacher(null);
+        } catch (err) {
+            alert("Upload failed: " + err.response?.data?.message);
+        }
+    };
+
+    const handleDelete = async (name) => {
+        if (window.confirm(`Are you sure? This will permanently delete all schedules for ${name}.`)) {
+            setLoading(true);
+            try {
+                const response = await scheduleAPI.deleteSchedule(name);
+                alert(response.data.message || "Schedule deleted successfully!");
+                // List ko refresh karne ke liye search function firse call karein
+                handleManageSearch(); 
+            } catch (err) {
+                alert("Delete failed: " + (err.response?.data || "Server error"));
+            } finally {
+                setLoading(false);
+            }
+        }
+    };
+
     return (
         <div className="schedule-page">
             <BackButton />
@@ -137,7 +183,10 @@ const Schedule = () => {
 
                         <button
                             className="btn btn-primary btn-full"
-                            onClick={handleSearch}
+                            onClick={() => {
+                                handleSearch(); // Live status ke liye
+                                if (isManagementMode) handleManageSearch(); // Office management list ke liye
+                            }}
                             disabled={loading}
                         >
                             {loading ? 'Searching...' : '🔍 Locate Teacher Now'}
@@ -160,6 +209,7 @@ const Schedule = () => {
                                 </div>
                             </div>
                         )}
+
                     </div>
                 </div>
 
@@ -198,6 +248,53 @@ const Schedule = () => {
                         </div>
                     </div>
                 )}
+
+                {/* --- Existing Search Button ke theek niche --- */}
+
+                {/* 1. Management Mode: Teacher Results List (Dropdown) */}
+                {isManagementMode && teacherResults.length > 0 && (
+                    <div className="teacher-results-list card" style={{ marginTop: '20px' }}>
+                        <h4>Select Teacher to Manage</h4>
+                        {teacherResults.map((t) => (
+                            <div key={t.userId} className="teacher-item" style={{ display: 'flex', justifyContent: 'space-between', padding: '10px', borderBottom: '1px solid #eee' }}>
+                                <div>
+                                    <strong>{t.firstName} {t.lastName}</strong>
+                                    <p style={{ fontSize: '0.8rem', color: 'gray', margin: 0 }}>{t.email}</p>
+                                </div>
+                                <div className="action-buttons" style={{ display: 'flex', gap: '5px' }}>
+                                    <button className="btn-sm" onClick={() => { setSelectedTeacher(t); setIsUpdateMode(false); }}>Add</button>
+                                    <button className="btn-sm" onClick={() => { setSelectedTeacher(t); setIsUpdateMode(true); }}>Edit</button>
+                                    <button className="btn-sm btn-danger" onClick={() => handleDelete(t.firstName)}>Delete</button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {/* 2. Dynamic Upload Section (Appears when Add/Edit is clicked) */}
+                {isManagementMode && selectedTeacher && (
+                    <div className="upload-section card" style={{ marginTop: '20px', border: '1px solid #007bff', padding: '20px' }}>
+                        <h3>{isUpdateMode ? '🔄 Replace' : '➕ Add'} Schedule for {selectedTeacher.firstName}</h3>
+                        <p>Choose the Excel sheet for this teacher.</p>
+                        <input 
+                            type="file" 
+                            accept=".xlsx, .xls" 
+                            onChange={(e) => setUploadFile(e.target.files[0])} 
+                            className="form-control"
+                            style={{ marginBottom: '15px' }}
+                        />
+                        <div style={{ display: 'flex', gap: '10px' }}>
+                            <button className="btn btn-primary" onClick={handleFileUpload}>
+                                {isUpdateMode ? 'Upload New Schedule' : 'Upload Schedule'}
+                            </button>
+                            <button className="btn btn-secondary" onClick={() => { setSelectedTeacher(null); setUploadFile(null); }}>
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {/* --- Iske niche aapka existing Result Section {showSchedule && ...} rahega --- */}
             </div>
         </div>
     );

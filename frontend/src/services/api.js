@@ -149,13 +149,26 @@ export const scheduleAPI = {
     searchAdvanced: (name, day, time) => 
         api.get(`/office/schedule/search/advanced?name=${name}&day=${day}&time=${time}`),
 
-    uploadExcel: (file) => {
+    // YAHAN EXACT CHANGE KARNA HAI (axios hata kar api.get use kiya hai)
+    searchTeachers: (query) => api.get(`/office/schedule/teachers/search?query=${encodeURIComponent(query)}`),
+
+    // Check if teacher has existing schedule
+    checkScheduleExists: (email) => api.get(`/office/schedule/teachers/check-schedule?email=${encodeURIComponent(email)}`),
+
+    deleteSchedule: (email) => api.delete(`/office/schedule/delete-teacher-schedule?email=${encodeURIComponent(email)}`),
+
+    uploadExcel: (file, email, teacherName, isUpdate = false) => {
         const formData = new FormData();
         formData.append('file', file);
+        formData.append('email', email);
+        formData.append('teacherName', teacherName);
+        formData.append('isUpdate', isUpdate.toString()); 
         return api.post('/office/schedule/upload', formData, {
             headers: { 'Content-Type': 'multipart/form-data' }
         });
-    }
+    },
+
+    getTeacherScheduleData: (email) => api.get(`/office/schedule/teachers/schedule-data`, { params: { email } }),
 };
 
 // ==================== VENUE BOOKING API ====================

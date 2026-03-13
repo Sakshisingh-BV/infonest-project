@@ -33,4 +33,15 @@ public interface VenueBookingRepository extends JpaRepository<VenueBooking, Long
 
     // Find all bookings for a date
     List<VenueBooking> findByBookingDateAndStatus(LocalDate date, String status);
+
+    // Find confirmed bookings by teacher name for a specific date and time (for venue priority in schedule)
+    @Query("SELECT vb FROM VenueBooking vb WHERE vb.bookedByName ILIKE %:teacherName% " +
+            "AND vb.bookingDate = :date " +
+            "AND vb.status = 'CONFIRMED' " +
+            "AND vb.startTime <= :currentTime " +
+            "AND vb.endTime >= :currentTime")
+    List<VenueBooking> findActiveBookingByTeacher(
+            @Param("teacherName") String teacherName,
+            @Param("date") LocalDate date,
+            @Param("currentTime") LocalTime currentTime);
 }

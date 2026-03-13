@@ -5,6 +5,7 @@ import com.infonest.repository.ScheduleRepository;
 import com.infonest.repository.VenueBookingRepository;
 import com.infonest.repository.UserRepository;
 import com.infonest.model.User;
+import org.springframework.transaction.annotation.Transactional;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,7 +18,10 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
+//import java.util.Optional;
+import java.util.Set;
+import java.util.HashSet;
+//import java.util.Arrays;
 @Service
 public class ScheduleService {
 
@@ -30,65 +34,102 @@ public class ScheduleService {
     @Autowired
     private UserRepository userRepository; // Role validation ke liye zaroori hai
     // added boolean isUpdate parameter
-    public void importExcel(MultipartFile file, boolean isUpdate) throws Exception {
-        try (Workbook workbook = new XSSFWorkbook(file.getInputStream())) {
-            Sheet sheet = workbook.getSheetAt(0);
-            List<Schedules> list = new ArrayList<>();
-            DataFormatter formatter = new DataFormatter(); 
+    // Inside ScheduleService.java
 
-            // 1. Pehle validate karein ki file empty toh nahi hai
-            Row firstDataRow = sheet.getRow(1);
-            if (firstDataRow == null || firstDataRow.getCell(0) == null) {
-                throw new Exception("Excel file is empty or invalid!");
-            }
+    // Add 'uiTeacherName' to parameters
+    @Transactional(rollbackFor = Exception.class)
+public void importExcel(MultipartFile file, String email, String teacherName, boolean isUpdate) throws Exception {
+    // 1. Wipe existing schedule to avoid duplicates
+    repository.deleteByEmail(email);
 
-            // 2. Pehli data row se teacher name nikal kar role check karein
-            String teacherNameForValidation = formatter.formatCellValue(firstDataRow.getCell(0)).trim();
-            
-            // searchManageableTeachers ensure karega ki role STUDENT/OFFICE na ho
-            List<com.infonest.model.User> validUsers = userRepository.searchManageableTeachers(teacherNameForValidation);
-            if (validUsers.isEmpty()) {
-                throw new Exception("Unauthorized: Teacher '" + teacherNameForValidation + "' not found or has invalid role.");
-            }
+    try (Workbook workbook = new XSSFWorkbook(file.getInputStream())) {
+        Sheet sheet = workbook.getSheetAt(0);
+        List<Schedules> list = new ArrayList<>();
+        DataFormatter formatter = new DataFormatter();
+        DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("H:mm[:ss]");
 
-            // 3. Agar 'Edit' flag (isUpdate) true hai, toh purana data delete karein
-            if (isUpdate) { 
-                repository.deleteByTeacherName(teacherNameForValidation); 
-            }
+        for (Row row : sheet) {
+        if (row.getRowNum() == 0) continue; // Skip Header
+        
+        // Check if Teacher Name (Col 0) is empty to stop processing
+        if (row.getCell(0) == null || formatter.formatCellValue(row.getCell(0)).isEmpty()) continue;
 
-            // 4. Loop start karein sirf data parsing ke liye
-            for (Row row : sheet) {
-                if (row.getRowNum() == 0) continue; // Header skip karein
+        String day = formatter.formatCellValue(row.getCell(1)).trim().toUpperCase(); // Day is Col 1
+        
+        // logic: Tuesday is a holiday, skip any entries found for it
+        if ("TUESDAY".equals(day)) continue; 
 
-                try {
-                    if (row.getCell(0) == null || row.getCell(0).getCellType() == CellType.BLANK) continue;
+        Schedules s = new Schedules();
+        
+        // Source of truth: Use the email and name provided by the UI selection
+        s.setEmail(email); 
+        s.setTeacherName(teacherName); 
+        
+        // Mapping from Excel Columns
+        s.setDayOfWeek(day);                                               // Col 1
+        s.setSubject(formatter.formatCellValue(row.getCell(2)).trim());     // Col 2
+        s.setBatchName(formatter.formatCellValue(row.getCell(3)).trim());   // Col 3
+        s.setRoomNo(formatter.formatCellValue(row.getCell(4)).trim());      // Col 4
+        
+        // Time Parsing (HH:mm)
+        String startStr = formatter.formatCellValue(row.getCell(5)).trim(); // Col 5
+        String endStr = formatter.formatCellValue(row.getCell(6)).trim();   // Col 6
+        s.setStartTime(LocalTime.parse(startStr, timeFormatter));
+        s.setEndTime(LocalTime.parse(endStr, timeFormatter));
+        
+        s.setSittingCabin(formatter.formatCellValue(row.getCell(7)).trim()); // Col 7
 
-                    Schedules s = new Schedules();
-                    s.setTeacherName(formatter.formatCellValue(row.getCell(0)).trim());
-                    s.setSubject(formatter.formatCellValue(row.getCell(1)).trim());
-                    s.setRoomNo(formatter.formatCellValue(row.getCell(2)).trim());
-                    s.setDayOfWeek(formatter.formatCellValue(row.getCell(3)).trim().toUpperCase());
-                    s.setSittingCabin(formatter.formatCellValue(row.getCell(6)).trim()); // Index 6 is Column G
+        list.add(s);
+    }
+    // Save all rows at once
+    repository.saveAll(list);
+    }
+}
 
-                    java.time.format.DateTimeFormatter timeFormatter = java.time.format.DateTimeFormatter.ofPattern("H:mm[:ss]");
-                    String start = formatter.formatCellValue(row.getCell(4)).trim();
-                    String end = formatter.formatCellValue(row.getCell(5)).trim();
-                    
-                    s.setStartTime(LocalTime.parse(start, timeFormatter));
-                    s.setEndTime(LocalTime.parse(end, timeFormatter));
+@Transactional
+public void deleteTeacherSchedule(String email) {
+    System.out.println("Attempting to delete schedule for email: [" + email + "]");
+    repository.deleteByEmail(email.trim());
+    // The transaction will handle the commit automatically
+}
 
-                    list.add(s);
-                } catch (Exception e) {
-                    throw new Exception("Error in row " + (row.getRowNum() + 1) + ": " + e.getMessage());
+    // Try several heuristics to locate a manageable teacher record from uploaded name/email
+    private List<User> findMatchingUsers(String raw) {
+        String q = raw == null ? "" : raw.trim();
+        Set<User> results = new HashSet<>();
+
+        // 1) If looks like an email, try exact email match first
+        if (q.contains("@")) {
+            userRepository.findByEmail(q).ifPresent(u -> {
+                if (!"STUDENT".equalsIgnoreCase(u.getRole()) && !"OFFICE".equalsIgnoreCase(u.getRole())) {
+                    results.add(u);
                 }
-            }
-            
-            if (list.isEmpty()) {
-                throw new Exception("The Excel file had no valid data rows.");
-            }
-
-            repository.saveAll(list); // Naya schedule save karein
+            });
+            if (!results.isEmpty()) return new ArrayList<>(results);
         }
+
+        // 2) Try the existing searchable query (searches firstName/lastName/email via LIKE)
+        List<User> list = userRepository.searchManageableTeachers(q);
+        if (list != null && !list.isEmpty()) return list;
+
+        // 3) Tokenize the input (split by whitespace/comma) and try each token
+        String[] tokens = q.split("\\s+|,");
+        for (String t : tokens) {
+            t = t.trim();
+            if (t.isEmpty()) continue;
+            list = userRepository.searchManageableTeachers(t);
+            if (list != null) results.addAll(list);
+        }
+        if (!results.isEmpty()) return new ArrayList<>(results);
+
+        // 4) If two tokens, also try swapped order ("Last First" -> "First Last" attempts)
+        if (tokens.length == 2) {
+            String swapped = tokens[1] + " " + tokens[0];
+            list = userRepository.searchManageableTeachers(swapped);
+            if (list != null && !list.isEmpty()) return list;
+        }
+
+        return new ArrayList<>();
     }
 
     public String getRealTimeStatus(String name) {
@@ -116,10 +157,9 @@ public class ScheduleService {
         }
 
         return repository.findCurrentLocation(name, day.toString().toUpperCase(), now)
-                .map(s -> "📍 " + s.getTeacherName() + " is in " + s.getRoomNo() + " for " + s.getSubject())
-                .orElseGet(() -> repository.findSittingCabin(name)
-                        .map(c -> "No active class. Teacher is in Sitting Cabin: " + c)
-                        .orElse("No information found for this teacher."));
+        .map(s -> "📍 " + s.getTeacherName() + " is in " + s.getRoomNo() + 
+                  " taking " + s.getSubject() + " for Batch: " + s.getBatchName())
+        .orElse("No active class at this time. Please check Sitting Cabin.");
     }
 
             public String getTeacherCabin(String name) {

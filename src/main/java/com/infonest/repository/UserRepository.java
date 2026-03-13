@@ -16,10 +16,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     List<User> findByRole(String role); // For getting all faculty
 
-    @Query("SELECT u FROM User u WHERE " +
-           "(LOWER(u.firstName) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+   @Query("SELECT u FROM User u WHERE u.role NOT IN ('STUDENT', 'OFFICE') AND (" +
+           "LOWER(u.firstName) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
            "LOWER(u.lastName) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
-           "LOWER(u.email) LIKE LOWER(CONCAT('%', :query, '%'))) AND " +
-           "u.role NOT IN ('STUDENT', 'OFFICE')")
+           "LOWER(CONCAT(u.firstName, ' ', u.lastName)) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           "LOWER(u.email) LIKE LOWER(CONCAT('%', :query, '%')))")
     List<User> searchManageableTeachers(@Param("query") String query);
 }

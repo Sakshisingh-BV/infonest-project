@@ -17,38 +17,112 @@ const OfficeDashboard = () => {
     const [teacherResults, setTeacherResults] = useState([]);
     const [selectedTeacher, setSelectedTeacher] = useState(null);
     const [isUpdateMode, setIsUpdateMode] = useState(false);
-
-    // Teacher search function
-    const handleTeacherSearch = async () => {
-        if (!teacherSearch) return;
+    const [teacherScheduleStatus, setTeacherScheduleStatus] = useState({});
+    const [viewModal, setViewModal] = useState({ isOpen: false, data: [], teacherName: '' });
+    // Check if teacher has existing schedule
+    const checkTeacherSchedule = async (email) => {
+        if (!email) return; // Prevent undefined calls
         try {
-            const response = await scheduleAPI.searchTeachers(teacherSearch);
-            setTeacherResults(response.data);
+            const response = await scheduleAPI.checkScheduleExists(email);
+            setTeacherScheduleStatus(prev => ({ ...prev, [email]: response.data.hasSchedule }));
+            return response.data.hasSchedule;
         } catch (err) {
-            setMessage({ type: 'error', text: 'Teacher not found' });
-            setTeacherResults([]);
+            setTeacherScheduleStatus(prev => ({ ...prev, [email]: false }));
+            return false;
         }
     };
 
-    // Updated Upload function (Jo isUpdate flag bhej sake)
-    const handleOfficeScheduleUpload = async (e) => {
+    // 2. Update the Search function to pass 'teacher.email' instead of full name
+    const handleTeacherSearch = async () => {
+    if (!teacherSearch.trim()) return; // Khali search allow mat karein
+    try {
+        const response = await scheduleAPI.searchTeachers(teacherSearch.trim());
+        setTeacherResults(response.data);
+        
+        // Results aane par unka schedule status check karein
+        response.data.forEach(teacher => {
+            checkTeacherSchedule(teacher.email); 
+        });
+        setMessage({ type: '', text: '' }); // Purana error hata dein
+    } catch (err) {
+        setTeacherResults([]);
+        setMessage({ type: 'error', text: 'No such teacher found in records.' });
+    }
+};
+
+    // Handle Add Schedule
+    const handleAddSchedule = async (teacher) => {
+        const hasSchedule = teacherScheduleStatus[teacher.email]; // FIX: Check by EMAIL
+        if (hasSchedule) {
+            setMessage({ type: 'error', text: `Schedule already exists for ${teacher.firstName}. Use Edit to modify.` });
+            return;
+        }
+        setSelectedTeacher(teacher);
+        setIsUpdateMode(false);
+    };
+
+    // Handle Edit Schedule
+    const handleEditSchedule = async (teacher) => {
+        const hasSchedule = teacherScheduleStatus[teacher.email]; // FIX: Check by EMAIL
+        if (!hasSchedule) {
+            setMessage({ type: 'error', text: `No schedule found for ${teacher.firstName}. Please add a schedule first.` });
+            return;
+        }
+        setSelectedTeacher(teacher);
+        setIsUpdateMode(true);
+    };
+
+    // Handle Delete Schedule
+    // Delete Handler
+    // Is block ko Line 93 ke paas replace karein
+    const handleDeleteSchedule = async (teacher) => {
+        if (!teacher.email) return;
+        if (!confirm(`Permanently delete schedule for ${teacher.firstName}?`)) return;
+
+        try {
+            await scheduleAPI.deleteSchedule(teacher.email);
+            setMessage({ type: 'success', text: 'Schedule deleted successfully.' });
+            // UI ko turant update karne ke liye state change karein
+            setTeacherScheduleStatus(prev => ({ ...prev, [teacher.email]: false }));
+        } catch (err) {
+            setMessage({ type: 'error', text: 'Failed to delete.' });
+        }
+    };
+
+    // Updated Upload function
+   const handleOfficeScheduleUpload = async (e) => {
         e.preventDefault();
         if (!selectedFile) return;
 
         setLoading(true);
         try {
-            // Hamare naye API logic ke hisaab se isUpdate pass karenge
-            await scheduleAPI.uploadExcel(selectedFile, isUpdateMode);
-            setMessage({ type: 'success', text: isUpdateMode ? 'Schedule replaced!' : 'Schedule added!' });
-            setSelectedFile(null);
-            setSelectedTeacher(null);
-            setTeacherResults([]);
+            const fullName = `${selectedTeacher.firstName} ${selectedTeacher.lastName}`;
+            const email = selectedTeacher.email;
+            
+           await scheduleAPI.uploadExcel(selectedFile, email, fullName, isUpdateMode);
+setMessage({ type: 'success', text: isUpdateMode ? 'Schedule updated!' : 'Schedule added!' });
+setTeacherScheduleStatus(prev => ({ ...prev, [email]: true })); // Trigger UI button toggle
+setSelectedTeacher(null); // Close upload box
         } catch (err) {
             setMessage({ type: 'error', text: err.response?.data?.message || "Upload failed" });
         } finally {
             setLoading(false);
         }
     };
+
+    // Handle Floating Modal View
+    const handleViewSchedule = async (teacher) => {
+        const fullName = `${teacher.firstName} ${teacher.lastName}`;
+        try {
+            // FIX: Pass email instead of fullName to the API
+            const res = await scheduleAPI.getTeacherScheduleData(teacher.email); 
+            setViewModal({ isOpen: true, data: res.data, teacherName: fullName });
+        } catch (err) {
+            setMessage({ type: 'error', text: "Failed to fetch schedule data" });
+        }
+    };
+
+    
     // Add venue form
     const [showAddModal, setShowAddModal] = useState(false);
     const [venueForm, setVenueForm] = useState({
@@ -148,13 +222,16 @@ const OfficeDashboard = () => {
 };
 
 // Professional touch: Provide a template for the office user
+// Line 222 ke paas purane wale ko isse replace karein:
+// Is block ko Line 222 ke paas replace karein
 const downloadTemplate = () => {
-    const csvContent = "Teacher Name,Subject,Room No,Day,Start Time (HH:mm),End Time (HH:mm)\nDr. Smith,Computer Science,Room 101,Monday,09:00,10:00";
-    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const headers = "Teacher Name,Day,Subject,Batch,Room No,Start Time (HH:mm),End Time (HH:mm),Sitting Cabin\n";
+    const example = "teacher,MONDAY,Java Programming,CS-A,CS-102,09:00,10:30,Staff Room 1";
+    const blob = new Blob([headers + example], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'Schedule_Template.csv';
+    a.download = 'Teacher_Schedule_Template.csv';
     a.click();
 };
     return (
@@ -172,12 +249,7 @@ const downloadTemplate = () => {
                 </div>
             </header>
 
-            {message.text && (
-                <div className={`alert alert-${message.type}`}>
-                    {message.text}
-                    <button onClick={() => setMessage({ type: '', text: '' })}>×</button>
-                </div>
-            )}
+            
 
             {/* Stats */}
             <div className="stats-row">
@@ -263,67 +335,80 @@ const downloadTemplate = () => {
                     </table>
                 </div>
             )}
-
-            {activeTab === 'schedules' && (
-            <div className="card">
-                <h2>📅 Manage Teacher Schedules</h2>
-                
-                {/* Step 1: Search Teacher First */}
-                <div className="management-search-bar" style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
-                    <input 
-                        type="text" 
-                        placeholder="Search teacher to Manage (Add/Edit/Delete)..." 
-                        className="form-control"
-                        value={teacherSearch}
-                        onChange={(e) => setTeacherSearch(e.target.value)}
-                    />
-                    <button className="btn btn-primary" onClick={handleTeacherSearch}>🔍 Search</button>
+            {message.text && (
+                <div className={`alert alert-${message.type}`}>
+                    {message.text}
+                    <button onClick={() => setMessage({ type: '', text: '' })}>×</button>
                 </div>
+            )}
+            {/* Line 410 ke paas se replace shuru karein */}
+            {activeTab === 'schedules' && (
+                <div className="card">
+                    <h2>📅 Manage Teacher Schedules</h2>
+                    <div className="management-search-bar" style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+                        <input 
+                            type="text" 
+                            placeholder="Search teacher name..." 
+                            className="form-control"
+                            value={teacherSearch}
+                            onChange={(e) => setTeacherSearch(e.target.value)}
+                        />
+                        <button className="btn btn-primary" onClick={handleTeacherSearch}>🔍 Search</button>
+                    </div>
 
-                {/* Step 2: Teacher Results Dropdown */}
-                {teacherResults.length > 0 && (
-                    <div className="teacher-results-list" style={{ marginBottom: '20px', border: '1px solid var(--border)', borderRadius: '8px' }}>
-                        {teacherResults.map(t => (
-                            <div key={t.userId} className="teacher-item" style={{ display: 'flex', justifyContent: 'space-between', padding: '10px', borderBottom: '1px solid var(--border)' }}>
-                                <span><strong>{t.firstName} {t.lastName}</strong> ({t.email})</span>
-                                <div className="action-buttons">
-                                    <button className="btn-sm" onClick={() => { setSelectedTeacher(t); setIsUpdateMode(false); }}>➕ Add</button>
-                                    <button className="btn-sm" onClick={() => { setSelectedTeacher(t); setIsUpdateMode(true); }}>🔄 Edit</button>
-                                    <button className="btn-sm btn-danger" onClick={() => handleDeleteVenue(t.firstName)}>🗑️ Delete</button>
+                    {teacherResults.map(t => {
+                        const hasSchedule = teacherScheduleStatus[t.email];
+                        return (
+                            <div key={t.userId} className="teacher-item" style={{ padding: '15px', borderBottom: '1px solid #ddd', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                                    {hasSchedule && (
+                                        <button onClick={() => handleViewSchedule(t)} title="View Data" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.5rem' }}>📊</button>
+                                    )}
+                                    <div>
+                                        <strong>{t.firstName} {t.lastName}</strong>
+                                        <div style={{ color: 'var(--primary)', fontSize: '0.8rem' }}>{t.email}</div>
+                                        <div style={{ fontSize: '0.75rem', color: hasSchedule ? '#28a745' : '#dc3545', fontWeight: 'bold' }}>
+                                            {hasSchedule ? '● Schedule exists' : '○ No schedule added'}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="action-buttons" style={{ display: 'flex', gap: '8px' }}>
+                                    {!hasSchedule ? (
+                                        <button className="btn-sm btn-success" onClick={() => handleAddSchedule(t)}>➕ Add</button>
+                                    ) : (
+                                        <>
+                                            <button className="btn-sm btn-warning" onClick={() => handleEditSchedule(t)}>🔄 Edit</button>
+                                            <button className="btn-sm btn-danger" onClick={() => handleDeleteSchedule(t)}>🗑️ Delete</button>
+                                        </>
+                                    )}
                                 </div>
                             </div>
-                        ))}
-                    </div>
-                )}
+                        );
+                    })}
 
-                {/* Step 3: Dynamic Upload Box */}
-                {selectedTeacher && (
-                    <div className="upload-section card" style={{ border: '2px solid var(--primary)' }}>
-                        <h3>{isUpdateMode ? '🔄 Replace' : '➕ Add'} Schedule for {selectedTeacher.firstName}</h3>
-                        <form onSubmit={handleOfficeScheduleUpload}>
-                            <input 
-                                type="file" 
-                                accept=".xlsx, .xls" 
-                                onChange={(e) => setSelectedFile(e.target.files[0])} 
-                                className="form-control"
-                            />
-                            <div className="modal-actions" style={{ marginTop: '10px', display: 'flex', gap: '10px' }}>
-                                <button type="submit" className="btn btn-primary">Upload Excel</button>
-                                <button type="button" className="btn btn-secondary" onClick={() => setSelectedTeacher(null)}>Cancel</button>
+                    {selectedTeacher && (
+                        <div className="upload-section card" style={{ border: '2px solid var(--primary)', marginTop: '20px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                <div>
+                                    <h3>{isUpdateMode ? '🔄 Edit' : '➕ Add'} for {selectedTeacher.firstName}</h3>
+                                    <p style={{ fontSize: '0.8rem', color: '#666' }}>Upload weekly schedule file.</p>
+                                </div>
+                                <button className="btn btn-secondary btn-sm" onClick={downloadTemplate}>📥 Template</button>
                             </div>
-                        </form>
-                    </div>
-                )}
-
-                <hr style={{ margin: '30px 0', border: '0.5px solid var(--border)' }} />
-                
-                {/* Bulk Template Section */}
-                <div className="template-section">
-                    <p className="helper-text">New here? Download the template to format your schedule correctly.</p>
-                    <button className="btn btn-secondary" onClick={downloadTemplate}>📥 Download Excel Template</button>
+                            <div style={{ backgroundColor: '#fff3cd', padding: '10px', borderRadius: '5px', marginBottom: '15px', fontSize: '0.8rem', color: '#856404' }}>
+                                <strong>Note:</strong> Teacher Name, Day, Subject, Batch, Room, Start, End, Cabin. (No Tuesdays).
+                            </div>
+                            <form onSubmit={handleOfficeScheduleUpload}>
+                                <input type="file" accept=".xlsx, .xls, .csv" onChange={(e) => setSelectedFile(e.target.files[0])} className="form-control" />
+                                <div style={{ marginTop: '15px', display: 'flex', gap: '10px' }}>
+                                    <button type="submit" className="btn btn-primary" disabled={loading}>{loading ? 'Uploading...' : 'Confirm Sync'}</button>
+                                    <button type="button" className="btn btn-secondary" onClick={() => setSelectedTeacher(null)}>Cancel</button>
+                                </div>
+                            </form>
+                        </div>
+                    )}
                 </div>
-            </div>
-        )}
+            )}
 
             {/* Add Venue Modal */}
             {showAddModal && (
@@ -357,6 +442,52 @@ const downloadTemplate = () => {
                             </div>
                             <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>Add Venue</button>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* FLOATING EXCEL MODAL */}
+            {viewModal.isOpen && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1000,
+                    display: 'flex', justifyContent: 'center', alignItems: 'center'
+                }}>
+                    <div style={{
+                        background: 'white', width: '80%', maxHeight: '80vh', 
+                        borderRadius: '8px', padding: '20px', overflowY: 'auto',
+                        position: 'relative', boxShadow: '0 4px 20px rgba(0,0,0,0.2)'
+                    }}>
+                        {/* CROSS BUTTON */}
+                        <button 
+                            onClick={() => setViewModal({ isOpen: false, data: [], teacherName: '' })}
+                            style={{ position: 'absolute', top: '10px', right: '15px', background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#ff4444' }}
+                        >
+                            ✖
+                        </button>
+                        <h3 style={{ borderBottom: '2px solid #ddd', paddingBottom: '10px', color: 'black' }}>
+                            📊 Schedule Data: {viewModal.teacherName}
+                        </h3>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '15px', color: 'black' }}>
+                            <thead>
+                                <tr style={{ backgroundColor: '#f4f4f4' }}>
+                                    <th style={{ border: '1px solid #ddd', padding: '8px' }}>Day</th>
+                                    <th style={{ border: '1px solid #ddd', padding: '8px' }}>Time</th>
+                                    <th style={{ border: '1px solid #ddd', padding: '8px' }}>Subject</th>
+                                    <th style={{ border: '1px solid #ddd', padding: '8px' }}>Room</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {viewModal.data.map(row => (
+                                    <tr key={row.id}>
+                                        <td style={{ border: '1px solid #ddd', padding: '8px' }}>{row.dayOfWeek}</td>
+                                        <td style={{ border: '1px solid #ddd', padding: '8px' }}>{row.startTime} - {row.endTime}</td>
+                                        <td style={{ border: '1px solid #ddd', padding: '8px' }}>{row.subject}</td>
+                                        <td style={{ border: '1px solid #ddd', padding: '8px' }}>{row.roomNo}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             )}

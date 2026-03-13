@@ -1,0 +1,65 @@
+.bento-stat {
+  display: flex;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  border: var(--glass-border);
+  border-radius: var(--radius-xl);
+  position: relative;
+  overflow: hidden;
+  height: 140px;
+  min-width: 200px;
+}
+
+.stat-img {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius);
+  background-size: cover;
+  background-position: center;
+  flex-shrink: 0;
+  border: 2px solid rgba(255,255,255,0.2);
+}
+
+.stat-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 800;
+  fill: var(--text-heading);
+  font-family: var(--font-family);
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+}
+
+.stat-value {
+  font-size: 1.75rem;
+  font-weight: 800;
+  fill: var(--text-heading);
+  font-family: var(--font-family);
+}
+
+.stat-labels {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+}
+
+.stat-label {
+  font-weight: 700;
+  color: var(--text-heading);
+  font-size: 0.875rem;
+}
+
+.stat-sub {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}

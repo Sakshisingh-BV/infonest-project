@@ -65,7 +65,7 @@ const Schedule = () => {
 
             <div className="schedule-container">
                 <header className="schedule-header">
-                    <h1>📅 View Schedules</h1>
+                    <h1>View Schedules</h1>
                     <p>Search and view schedules by teacher, classroom, or batch</p>
                     {canUpdateSchedule && (
                         <button className="btn btn-primary update-btn">
@@ -192,7 +192,7 @@ const Schedule = () => {
                                 onClick={handleSearch}
                                 disabled={loading}
                             >
-                                {loading ? 'Searching...' : '🔍 Search Schedule'}
+                                {loading ? 'Searching...' : 'Search Schedule'}
                             </button>
 
                             {showSchedule && scheduleData && (

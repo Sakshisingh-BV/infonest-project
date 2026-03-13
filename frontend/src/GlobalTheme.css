@@ -6,8 +6,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
 :root {
-    /* ─ Color Palette ─ */
-    --primary:           #2563eb;
+    /* ─ Color
     --primary-hov:       #1d4ed8;
     --primary-darker:    #1e3a8a;
     --primary-soft:      #eff6ff;
@@ -306,8 +305,23 @@ button,
 }
 
 /* ══════════════════════════════════════════════════════
-   CARDS — Soft Shadows & Hover Lift
+   GLASSMORPHIC CARDS — Frosted Glass Effect
    ══════════════════════════════════════════════════════ */
+
+.glass-card {
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    border: var(--glass-border);
+    box-shadow: var(--glass-shadow);
+    transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.glass-card:hover {
+    background: rgba(255, 255, 255, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 16px 48px rgba(31, 38, 135, 0.5);
+    transform: translateY(-4px);
+}
 
 .card,
 [role="card"] {

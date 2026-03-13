@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
 import { venueAPI } from '../services/api';
+import GlassTooltip from './GlassTooltip';
+import { motion } from 'framer-motion';
 import './MyBookingsCalendar.css';
 
 const MyBookingsCalendar = ({ onBookingSelect }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [tooltip, setTooltip] = useState({ visible: false, bookings: [], position: {} });
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(null);
@@ -96,6 +99,19 @@ const MyBookingsCalendar = ({ onBookingSelect }) => {
     }
   };
 
+  const handleDateHover = (e, dateStr, dayBookings) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setTooltip({
+      visible: dayBookings.length > 0,
+      bookings: dayBookings,
+      position: { x: rect.left + rect.width / 2, y: rect.top - 10 }
+    });
+  };
+
+  const hideTooltip = () => {
+    setTooltip({ visible: false, bookings: [], position: {} });
+  };
+
   const monthNames = [
     'January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December'
@@ -123,10 +139,15 @@ const MyBookingsCalendar = ({ onBookingSelect }) => {
       const hasBookings = dayBookings.length > 0;
 
       days.push(
-        <div
+        <motion.div
           key={day}
-          className={`calendar-day ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''} ${isPast ? 'past' : ''} ${hasBookings ? 'booked' : ''}`}
+          className={`calendar-day glass-card ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''} ${isPast ? 'past' : ''} ${hasBookings ? 'booked heatmap-${Math.min(dayBookings.length, 5)}' : ''}`}
+          initial={{ scale: 0.95, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.2, delay: day * 0.01 }}
           onClick={() => !isPast && handleDateClick(dateStr, dayBookings)}
+          onMouseEnter={(e) => handleDateHover(e, dateStr, dayBookings)}
+          onMouseLeave={hideTooltip}
         >
           <span className="day-number">{day}</span>
           {hasBookings && (
@@ -137,7 +158,7 @@ const MyBookingsCalendar = ({ onBookingSelect }) => {
               {dayBookings.length > 3 && <span className="more-bookings">+{dayBookings.length - 3}</span>}
             </div>
           )}
-        </div>
+        </motion.div>
       );
     }
 
@@ -157,9 +178,9 @@ const MyBookingsCalendar = ({ onBookingSelect }) => {
         {dayNames.map(day => <div key={day} className="weekday">{day}</div>)}
       </div>
 
-      <div className="calendar-grid">
+      <div className="calendar-grid" onMouseLeave={hideTooltip}>
         {loading ? (
-          <div className="calendar-loading">Loading bookings...</div>
+          <div className="calendar-loading glass-card">Loading bookings...</div>
         ) : (
           renderCalendarDays()
         )}
@@ -177,8 +198,12 @@ const MyBookingsCalendar = ({ onBookingSelect }) => {
       </div>
 
       {selectedDate && (
-        <div className="selected-date-details">
-          <h4>Bookings for {new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-IN', { 
+        <motion.div 
+          className="selected-date-details glass-card animate-gradient"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <h4>📋 Bookings for {new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-IN', { 
             weekday: 'long', 
             day: 'numeric', 
             month: 'short', 
@@ -202,7 +227,7 @@ const MyBookingsCalendar = ({ onBookingSelect }) => {
           ) : (
             <p className="no-bookings">No bookings for this date</p>
           )}
-        </div>
+        </motion.div>
       )}
     </div>
   );

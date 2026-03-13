@@ -17,8 +17,7 @@ const Navbar = () => {
         <header className="header">
             <div className="header-container">
                 <Link to="/" className="logo">
-                    <img src="/logoo.png" alt="InfoNest" className="logo-image" />
-                    <span className="logo-text">InfoNest</span>
+                    <img src="/logoo.png" alt="Logo" className="logo-image" />
                 </Link>
 
                 <div className="header-actions">

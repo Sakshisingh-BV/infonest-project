@@ -1,0 +1,60 @@
+.glass-tooltip {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  border: var(--glass-border);
+  border-radius: var(--radius-lg);
+  padding: 1rem;
+  min-width: 280px;
+  max-width: 320px;
+  box-shadow: var(--glass-shadow);
+  font-size: 0.875rem;
+}
+
+.tooltip-header h4 {
+  margin: 0 0 0.75rem 0;
+  color: var(--text-heading);
+  font-weight: 700;
+}
+
+.tooltip-body {
+  max-height: 200px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.booking-item {
+  padding: 0.5rem;
+  background: rgba(255,255,255,0.1);
+  border-radius: var(--radius);
+  border-left: 3px solid var(--primary);
+}
+
+.booking-time {
+  font-weight: 600;
+  color: var(--primary);
+  font-size: 0.75rem;
+}
+
+.tooltip-close {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 1.125rem;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background 0.2s ease;
+}
+
+.tooltip-close:hover {
+  background: rgba(255,255,255,0.2);
+}
